@@ -1,0 +1,6 @@
+{
+  "name": "CivicGuard",
+  "description": "Neo-Cyber Premium Eco civic monitoring platform to monitor the present and fix the future using AI.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
