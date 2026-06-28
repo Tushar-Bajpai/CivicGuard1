@@ -185,7 +185,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-[#0A0D04]/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0D04]/80 backdrop-blur-md">
       {/* Backdrop */}
       <motion.div 
         initial={{ opacity: 0 }}
@@ -201,7 +201,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="relative w-full max-w-xl bg-[#1A2209]/90 backdrop-blur-xl border border-[#FAFFF3]/15 rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-10 my-8"
+        className="relative w-full max-w-xl max-h-[92vh] md:max-h-[85vh] bg-[#1A2209]/95 backdrop-blur-xl border border-[#FAFFF3]/15 rounded-3xl p-5 md:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-10 flex flex-col"
         id="report-issue-modal-wrapper"
       >
         {/* Futuristic Grid / Cyber details */}
@@ -212,10 +212,10 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#C0F53D]/30 to-transparent" />
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[#FAFFF3]/10 pb-4 mb-6">
+        <div className="flex items-center justify-between border-b border-[#FAFFF3]/10 pb-3 mb-4 shrink-0">
           <div>
             <span className="font-mono text-[9px] text-[#C0F53D] tracking-[0.2em] uppercase block">TRANSMISSION LINK</span>
-            <h3 className="font-serif text-xl md:text-2xl text-[#FAFFF3] mt-0.5">
+            <h3 className="font-serif text-lg md:text-xl text-[#FAFFF3] mt-0.5">
               File Tactical <span className="italic text-[#C0F53D]">Civic Report</span>
             </h3>
           </div>
@@ -229,259 +229,264 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="space-y-5 text-left">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 text-left">
           
-          {/* Issue Title Input */}
-          <div className="space-y-1.5">
-            <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-              Incident Header / Title *
-            </label>
-            <input 
-              type="text" 
-              required
-              placeholder="e.g. Broken streetlight, active deep pothole..."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-4 py-3 text-sm text-[#FAFFF3] focus:border-[#C0F53D] focus:ring-1 focus:ring-[#C0F53D]/30 focus:outline-none transition-all placeholder-[#FAFFF3]/30"
-              id="report-input-title"
-            />
-          </div>
-
-          {/* Image Drag and Drop Upload Zone using react-dropzone */}
-          <div className="space-y-1.5">
-            <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-              Evidence Image Capture
-            </label>
+          {/* Scrollable inner input zone */}
+          <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 min-h-0">
             
-            <div 
-              {...getRootProps()} 
-              className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-200 ${
-                isDragActive 
-                  ? "border-[#C0F53D] bg-[#C0F53D]/5" 
-                  : imagePreviewUrl 
-                    ? "border-emerald-500/30 bg-[#0A0D04]/40" 
-                    : "border-[#FAFFF3]/15 hover:border-[#FAFFF3]/35 bg-[#0A0D04]/60"
-              }`}
-              id="report-image-dropzone"
-            >
-              <input {...getInputProps()} />
-              
-              {imagePreviewUrl ? (
-                <div className="flex flex-col items-center justify-center space-y-3" onClick={(e) => e.stopPropagation()}>
-                  <div className="relative group w-full max-w-[200px] aspect-video rounded-lg overflow-hidden border border-[#FAFFF3]/10 shadow-lg">
-                    <img 
-                      src={imagePreviewUrl} 
-                      alt="Thumbnail preview" 
-                      className="w-full h-full object-cover" 
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <p className="text-[10px] font-mono text-white">Click Upload Box to Replace</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> Image Uploaded ({uploadedImageFile?.name})
-                    </span>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setUploadedImageFile(null);
-                        setImagePreviewUrl(null);
-                      }}
-                      className="text-[9px] font-mono text-rose-400 hover:underline cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-2 space-y-2">
-                  <div className="w-9 h-9 rounded-full bg-[#1A2209] border border-[#C0F53D]/20 flex items-center justify-center text-[#C0F53D]">
-                    <Upload className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-[#FAFFF3]">
-                      Drag & drop image here, or <span className="text-[#C0F53D]">browse files</span>
-                    </p>
-                    <p className="text-[10px] text-[#FAFFF3]/40 font-mono mt-1">
-                      SUPPORTS JPG, PNG, GIF (MAX 10MB)
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Live Location Fetcher using browser Geolocation API */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            {/* Display/Fetch Coordinates */}
-            <div className="space-y-1.5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                    Telemetry Coordinates *
-                  </label>
-                  <button 
-                    type="button"
-                    onClick={handleSimulateLocation}
-                    className="font-mono text-[8px] text-[#C0F53D]/60 hover:text-[#C0F53D] hover:underline uppercase"
-                  >
-                    Simulate
-                  </button>
-                </div>
-                
-                {/* Monospaced coordinates preview display */}
-                <div className="w-full h-[46px] bg-[#0A0D04]/80 border border-[#FAFFF3]/10 rounded-xl px-4 flex items-center justify-between mt-1.5">
-                  <span className={`font-mono text-xs tracking-wider ${coordinates ? "text-[#C0F53D]" : "text-[#FAFFF3]/30"}`}>
-                    {coordinates || "FETCHING GPS REQUIRED..."}
-                  </span>
-                  
-                  {locationSuccess && (
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0 ml-2" />
-                  )}
-                  {locationError && (
-                    <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 ml-2" title={locationError} />
-                  )}
-                </div>
-              </div>
-
-              {/* Geolocation Button */}
-              <button
-                type="button"
-                onClick={handleFetchLocation}
-                disabled={isFetchingLocation}
-                className="w-full mt-2 py-2.5 rounded-xl border border-[#C0F53D]/30 hover:border-[#C0F53D] hover:bg-[#C0F53D]/5 text-[#C0F53D] font-mono text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {isFetchingLocation ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>PINPOINTING SATELLITE...</span>
-                  </>
-                ) : (
-                  <>
-                    <Compass className="w-3.5 h-3.5" />
-                    <span>FETCH LIVE GPS LOCATION</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Location Name Description Input */}
-            <div className="space-y-1.5 flex flex-col justify-end">
+            {/* Issue Title Input */}
+            <div className="space-y-1.5">
               <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                Geographic Reference / Address
-              </label>
-              <textarea 
-                rows={3}
-                placeholder="e.g. Near Laurelhurst Park, NE 33rd Ave..."
-                value={locationName}
-                onChange={(e) => setLocationName(e.target.value)}
-                className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-4 py-2.5 text-xs text-[#FAFFF3] focus:border-[#C0F53D] focus:outline-none transition-all placeholder-[#FAFFF3]/30 resize-none h-[88px]"
-                id="report-input-location-name"
-              />
-            </div>
-          </div>
-
-          {/* Location Errors Alert Block */}
-          {locationError && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 font-mono text-[10px] flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              <span>{locationError}</span>
-            </div>
-          )}
-
-          {/* Category Tags selection */}
-          <div className="space-y-2 text-left">
-            <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-              Incident Category Node tag
-            </label>
-            
-            {/* Predefined toggle chips */}
-            <div className="flex flex-wrap gap-2" id="report-category-toggle-group">
-              {(["Road Issue", "Potholes", "Streetlight", "Water Leak", "Others"] as PredefinedCategory[]).map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] tracking-wider uppercase transition-all duration-200 cursor-pointer ${
-                    selectedCategory === cat 
-                      ? "bg-[#C0F53D] text-[#0A0D04] border-[#C0F53D] font-bold shadow-[0_0_12px_rgba(192,245,61,0.3)]"
-                      : "bg-[#0A0D04]/60 border-[#FAFFF3]/10 text-[#FAFFF3]/60 hover:border-[#FAFFF3]/30 hover:text-white"
-                  }`}
-                  id={`btn-tag-${cat.toLowerCase().replace(" ", "-")}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
-            {/* Custom Category Tag Reveal */}
-            <AnimatePresence>
-              {selectedCategory === "Others" && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden pt-1.5"
-                >
-                  <input 
-                    type="text"
-                    required
-                    placeholder="Enter custom incident category label..."
-                    value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
-                    className="w-full bg-[#0A0D04]/80 border border-[#C0F53D]/40 rounded-xl px-3 py-2 text-xs text-[#FAFFF3] focus:border-[#C0F53D] focus:outline-none placeholder-[#FAFFF3]/30"
-                    id="report-input-custom-tag"
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Severity & Description */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            
-            {/* Severity Picker */}
-            <div className="sm:col-span-1 space-y-1.5">
-              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                Muni-Priority
-              </label>
-              <div className="relative">
-                <select 
-                  value={severity} 
-                  onChange={(e) => setSeverity(e.target.value as any)}
-                  className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-3 py-2.5 text-xs text-[#FAFFF3] appearance-none focus:border-[#C0F53D] focus:outline-none cursor-pointer"
-                  id="report-input-severity"
-                >
-                  <option value="Moderate" className="bg-[#1A2209] text-white">Moderate</option>
-                  <option value="High" className="bg-[#1A2209] text-white">High priority</option>
-                  <option value="Critical" className="bg-rose-950 text-rose-200 font-bold">CRITICAL NODE</option>
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-[#FAFFF3]/50 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Incident Observations */}
-            <div className="sm:col-span-2 space-y-1.5">
-              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                Observation Detail / Log Summary
+                Incident Header / Title *
               </label>
               <input 
                 type="text" 
-                placeholder="Structural failure detected, immediate dispatch required..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-4 py-2.5 text-xs text-[#FAFFF3] focus:border-[#C0F53D] focus:outline-none transition-all placeholder-[#FAFFF3]/30"
-                id="report-input-desc"
+                required
+                placeholder="e.g. Broken streetlight, active deep pothole..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-4 py-3 text-sm text-[#FAFFF3] focus:border-[#C0F53D] focus:ring-1 focus:ring-[#C0F53D]/30 focus:outline-none transition-all placeholder-[#FAFFF3]/30"
+                id="report-input-title"
               />
+            </div>
+
+            {/* Image Drag and Drop Upload Zone using react-dropzone */}
+            <div className="space-y-1.5">
+              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
+                Evidence Image Capture
+              </label>
+              
+              <div 
+                {...getRootProps()} 
+                className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all duration-200 ${
+                  isDragActive 
+                    ? "border-[#C0F53D] bg-[#C0F53D]/5" 
+                    : imagePreviewUrl 
+                      ? "border-emerald-500/30 bg-[#0A0D04]/40" 
+                      : "border-[#FAFFF3]/15 hover:border-[#FAFFF3]/35 bg-[#0A0D04]/60"
+                }`}
+                id="report-image-dropzone"
+              >
+                <input {...getInputProps()} />
+                
+                {imagePreviewUrl ? (
+                  <div className="flex flex-col items-center justify-center space-y-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative group w-full max-w-[160px] aspect-video rounded-lg overflow-hidden border border-[#FAFFF3]/10 shadow-lg">
+                      <img 
+                        src={imagePreviewUrl} 
+                        alt="Thumbnail preview" 
+                        className="w-full h-full object-cover" 
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <p className="text-[10px] font-mono text-white">Click Upload Box to Replace</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Image Uploaded ({uploadedImageFile?.name})
+                      </span>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setUploadedImageFile(null);
+                          setImagePreviewUrl(null);
+                        }}
+                        className="text-[9px] font-mono text-rose-400 hover:underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-1 space-y-1.5">
+                    <div className="w-8 h-8 rounded-full bg-[#1A2209] border border-[#C0F53D]/20 flex items-center justify-center text-[#C0F53D]">
+                      <Upload className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[#FAFFF3]">
+                        Drag & drop image here, or <span className="text-[#C0F53D]">browse files</span>
+                      </p>
+                      <p className="text-[10px] text-[#FAFFF3]/40 font-mono mt-0.5">
+                        SUPPORTS JPG, PNG, GIF (MAX 10MB)
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Live Location Fetcher using browser Geolocation API */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Display/Fetch Coordinates */}
+              <div className="space-y-1.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
+                      Telemetry Coordinates *
+                    </label>
+                    <button 
+                      type="button"
+                      onClick={handleSimulateLocation}
+                      className="font-mono text-[8px] text-[#C0F53D]/60 hover:text-[#C0F53D] hover:underline uppercase"
+                    >
+                      Simulate
+                    </button>
+                  </div>
+                  
+                  {/* Monospaced coordinates preview display */}
+                  <div className="w-full h-[40px] bg-[#0A0D04]/80 border border-[#FAFFF3]/10 rounded-xl px-3 flex items-center justify-between mt-1">
+                    <span className={`font-mono text-xs tracking-wider ${coordinates ? "text-[#C0F53D]" : "text-[#FAFFF3]/30"}`}>
+                      {coordinates || "FETCHING GPS REQUIRED..."}
+                    </span>
+                    
+                    {locationSuccess && (
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0 ml-2" />
+                    )}
+                    {locationError && (
+                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 ml-2" title={locationError} />
+                    )}
+                  </div>
+                </div>
+
+                {/* Geolocation Button */}
+                <button
+                  type="button"
+                  onClick={handleFetchLocation}
+                  disabled={isFetchingLocation}
+                  className="w-full mt-2 py-2 rounded-xl border border-[#C0F53D]/30 hover:border-[#C0F53D] hover:bg-[#C0F53D]/5 text-[#C0F53D] font-mono text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isFetchingLocation ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>PINPOINTING SATELLITE...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Compass className="w-3.5 h-3.5" />
+                      <span>FETCH LIVE GPS LOCATION</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Location Name Description Input */}
+              <div className="space-y-1.5 flex flex-col justify-end">
+                <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
+                  Geographic Reference / Address
+                </label>
+                <textarea 
+                  rows={3}
+                  placeholder="e.g. Near Laurelhurst Park, NE 33rd Ave..."
+                  value={locationName}
+                  onChange={(e) => setLocationName(e.target.value)}
+                  className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-4 py-2 text-xs text-[#FAFFF3] focus:border-[#C0F53D] focus:outline-none transition-all placeholder-[#FAFFF3]/30 resize-none h-[80px]"
+                  id="report-input-location-name"
+                />
+              </div>
+            </div>
+
+            {/* Location Errors Alert Block */}
+            {locationError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 font-mono text-[10px] flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                <span>{locationError}</span>
+              </div>
+            )}
+
+            {/* Category Tags selection */}
+            <div className="space-y-2 text-left">
+              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
+                Incident Category Node tag
+              </label>
+              
+              {/* Predefined toggle chips */}
+              <div className="flex flex-wrap gap-1.5" id="report-category-toggle-group">
+                {(["Road Issue", "Potholes", "Streetlight", "Water Leak", "Others"] as PredefinedCategory[]).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-2.5 py-1.5 rounded-lg border font-mono text-[10px] tracking-wider uppercase transition-all duration-200 cursor-pointer ${
+                      selectedCategory === cat 
+                        ? "bg-[#C0F53D] text-[#0A0D04] border-[#C0F53D] font-bold shadow-[0_0_12px_rgba(192,245,61,0.3)]"
+                        : "bg-[#0A0D04]/60 border-[#FAFFF3]/10 text-[#FAFFF3]/60 hover:border-[#FAFFF3]/30 hover:text-white"
+                    }`}
+                    id={`btn-tag-${cat.toLowerCase().replace(" ", "-")}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Category Tag Reveal */}
+              <AnimatePresence>
+                {selectedCategory === "Others" && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden pt-1.5"
+                  >
+                    <input 
+                      type="text"
+                      required
+                      placeholder="Enter custom incident category label..."
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      className="w-full bg-[#0A0D04]/80 border border-[#C0F53D]/40 rounded-xl px-3 py-2 text-xs text-[#FAFFF3] focus:border-[#C0F53D] focus:outline-none placeholder-[#FAFFF3]/30"
+                      id="report-input-custom-tag"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Severity & Description */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              
+              {/* Severity Picker */}
+              <div className="sm:col-span-1 space-y-1.5">
+                <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
+                  Muni-Priority
+                </label>
+                <div className="relative">
+                  <select 
+                    value={severity} 
+                    onChange={(e) => setSeverity(e.target.value as any)}
+                    className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-3 py-2 text-xs text-[#FAFFF3] appearance-none focus:border-[#C0F53D] focus:outline-none cursor-pointer"
+                    id="report-input-severity"
+                  >
+                    <option value="Moderate" className="bg-[#1A2209] text-white">Moderate</option>
+                    <option value="High" className="bg-[#1A2209] text-white">High priority</option>
+                    <option value="Critical" className="bg-rose-950 text-rose-200 font-bold">CRITICAL NODE</option>
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-[#FAFFF3]/50 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Incident Observations */}
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
+                  Observation Detail / Log Summary
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="Structural failure detected, immediate dispatch required..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-4 py-2 text-xs text-[#FAFFF3] focus:border-[#C0F53D] focus:outline-none transition-all placeholder-[#FAFFF3]/30"
+                  id="report-input-desc"
+                />
+              </div>
+
             </div>
 
           </div>
 
-          {/* Submit Button */}
-          <div className="pt-2">
+          {/* Sticky Footer Controls */}
+          <div className="pt-3.5 border-t border-[#FAFFF3]/10 mt-3.5 shrink-0">
             <motion.button
               whileHover={{ scale: 1.01, boxShadow: "0 0 20px rgba(192,245,61,0.4)" }}
               whileTap={{ scale: 0.99 }}
@@ -492,16 +497,16 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
               <AlertTriangle className="w-4 h-4 text-[#0A0D04]" />
               <span>DISPATCH CIVIC TRANSMISSION</span>
             </motion.button>
+
+            {/* Small footer branding node */}
+            <div className="mt-3 text-center">
+              <p className="font-mono text-[8px] text-[#FAFFF3]/30 tracking-widest uppercase">
+                SECURE CIVICGUARD ENDPOINT // VER v4.99_AUTO
+              </p>
+            </div>
           </div>
 
         </form>
-
-        {/* Small footer branding node */}
-        <div className="mt-5 text-center">
-          <p className="font-mono text-[8px] text-[#FAFFF3]/30 tracking-widest uppercase">
-            SECURE CIVICGUARD ENDPOINT // VER v4.99_AUTO
-          </p>
-        </div>
 
       </motion.div>
     </div>
