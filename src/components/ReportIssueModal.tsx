@@ -48,28 +48,8 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
-  // On Drop callback for react-dropzone
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      setUploadedImageFile(file);
-      
-      // Convert to base64 or ObjectURL for instant browser rendering
-      const objectUrl = URL.createObjectURL(file);
-      setImagePreviewUrl(objectUrl);
-    }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "image/*": []
-    },
-    multiple: false
-  } as any);
-
   // Browser Geolocation API call
-  const handleFetchLocation = () => {
+  const handleFetchLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setLocationError("Geolocation is not supported by your browser.");
       return;
@@ -122,7 +102,30 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  };
+  }, [locationName]);
+
+  // On Drop callback for react-dropzone
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles && acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      setUploadedImageFile(file);
+      
+      // Convert to base64 or ObjectURL for instant browser rendering
+      const objectUrl = URL.createObjectURL(file);
+      setImagePreviewUrl(objectUrl);
+
+      // Automatically fetch location as soon as picture is uploaded
+      handleFetchLocation();
+    }
+  }, [handleFetchLocation]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": []
+    },
+    multiple: false
+  } as any);
 
   const handleSimulateLocation = () => {
     // Generate Portland center randomized mock coordinate coordinates

@@ -744,13 +744,35 @@ export default function DashboardLayout({
                           </div>
 
                           {/* Custom Micro Hover Card */}
-                          <div className="absolute bottom-8 bg-[#1A2209]/95 border border-[#C0F53D]/40 px-2.5 py-1.5 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] scale-0 group-hover:scale-100 origin-bottom transition-all duration-200 z-50 pointer-events-none whitespace-nowrap text-left backdrop-blur-md">
-                            <div className="flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#C0F53D] animate-pulse" />
-                              <p className="font-mono text-[8px] text-[#C0F53D] tracking-wider font-bold">USER INCIDENT: {issue.id}</p>
+                          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-[#1A2209]/95 border border-[#C0F53D]/40 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] scale-0 group-hover:scale-100 origin-bottom transition-all duration-200 z-50 pointer-events-none w-72 p-3 text-left backdrop-blur-md flex gap-3">
+                            {/* Left Side: Info */}
+                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                              <div>
+                                <div className="flex items-center gap-1">
+                                  <span 
+                                    className="w-1.5 h-1.5 rounded-full animate-pulse" 
+                                    style={{ backgroundColor: issue.status === "critical" ? "#F43F5E" : issue.status === "resolved" ? "#C0F53D" : "#EAB308" }}
+                                  />
+                                  <p className="font-mono text-[7px] text-[#C0F53D] tracking-widest font-bold uppercase">{issue.id}</p>
+                                  <span className="font-mono text-[6px] text-[#FAFFF3]/40 px-1 border border-[#FAFFF3]/10 rounded bg-[#FAFFF3]/5 uppercase ml-auto">
+                                    {issue.status}
+                                  </span>
+                                </div>
+                                
+                                <p className="text-[10px] text-[#FAFFF3] font-bold tracking-tight mt-1 line-clamp-1 leading-snug">{issue.title}</p>
+                                <p className="text-[8px] text-[#FAFFF3]/60 font-light mt-0.5 line-clamp-1">{issue.description}</p>
+                              </div>
+                              
+                              <div className="flex items-center gap-1 text-[7px] text-[#FAFFF3]/40 font-mono uppercase mt-1.5">
+                                <MapPin className="w-2.5 h-2.5 text-[#C0F53D]/70 shrink-0" />
+                                <span className="truncate">{issue.locationName}</span>
+                              </div>
                             </div>
-                            <p className="text-[10px] text-[#FAFFF3] font-semibold mt-0.5">{issue.title}</p>
-                            <p className="font-mono text-[7px] text-[#FAFFF3]/50 uppercase mt-0.5">{issue.locationName}</p>
+
+                            {/* Right Side: Thumbnail Visualizer */}
+                            <div className="w-24 h-16 shrink-0 rounded-lg overflow-hidden border border-[#FAFFF3]/15 bg-[#0A0D04]/60">
+                              <IssueVisualizer type={issue.image} animate={false} />
+                            </div>
                           </div>
                         </button>
                       </Marker>
@@ -812,9 +834,35 @@ export default function DashboardLayout({
                         </div>
 
                         {/* Custom Micro Hover Card */}
-                        <div className="absolute bottom-8 bg-[#1A2209] border border-[#FAFFF3]/15 px-2.5 py-1 rounded shadow-2xl scale-0 group-hover:scale-100 origin-bottom transition-all duration-200 z-50 pointer-events-none whitespace-nowrap">
-                          <p className="font-mono text-[8px] text-[#C0F53D] tracking-wider font-bold">{issue.id}</p>
-                          <p className="text-[10px] text-[#FAFFF3] font-medium mt-0.5">{issue.title}</p>
+                        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-[#1A2209]/95 border border-[#C0F53D]/40 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] scale-0 group-hover:scale-100 origin-bottom transition-all duration-200 z-50 pointer-events-none w-72 p-3 text-left backdrop-blur-md flex gap-3">
+                          {/* Left Side: Info */}
+                          <div className="flex-1 min-w-0 flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <span 
+                                  className="w-1.5 h-1.5 rounded-full animate-pulse" 
+                                  style={{ backgroundColor: issue.status === "critical" ? "#F43F5E" : issue.status === "resolved" ? "#C0F53D" : "#EAB308" }}
+                                />
+                                <p className="font-mono text-[7px] text-[#C0F53D] tracking-widest font-bold uppercase">{issue.id}</p>
+                                <span className="font-mono text-[6px] text-[#FAFFF3]/40 px-1 border border-[#FAFFF3]/10 rounded bg-[#FAFFF3]/5 uppercase ml-auto">
+                                  {issue.status}
+                                </span>
+                              </div>
+                              
+                              <p className="text-[10px] text-[#FAFFF3] font-bold tracking-tight mt-1 line-clamp-1 leading-snug">{issue.title}</p>
+                              <p className="text-[8px] text-[#FAFFF3]/60 font-light mt-0.5 line-clamp-1">{issue.description}</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-1 text-[7px] text-[#FAFFF3]/40 font-mono uppercase mt-1.5">
+                              <MapPin className="w-2.5 h-2.5 text-[#C0F53D]/70 shrink-0" />
+                              <span className="truncate">{issue.locationName}</span>
+                            </div>
+                          </div>
+
+                          {/* Right Side: Thumbnail Visualizer */}
+                          <div className="w-24 h-16 shrink-0 rounded-lg overflow-hidden border border-[#FAFFF3]/15 bg-[#0A0D04]/60">
+                            <IssueVisualizer type={issue.image} animate={false} />
+                          </div>
                         </div>
                       </button>
                     </Marker>
