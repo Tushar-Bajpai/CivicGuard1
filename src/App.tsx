@@ -7,6 +7,11 @@ import ProcessGrid from "./components/ProcessGrid";
 import LiveMap from "./components/LiveMap";
 import CommunityFeed from "./components/CommunityFeed";
 import ImpactMetrics from "./components/ImpactMetrics";
+import ProblemStatement from "./components/ProblemStatement";
+import FeaturesGrid from "./components/FeaturesGrid";
+import GamificationTeaser from "./components/GamificationTeaser";
+import OurVision from "./components/OurVision";
+import FinalCTA from "./components/FinalCTA";
 import ReportIssueModal from "./components/ReportIssueModal";
 import Footer from "./components/Footer";
 import DashboardLayout from "./components/DashboardLayout";
@@ -430,21 +435,18 @@ function AppContent() {
               onViewMapClick={navigateToDashboard}
             />
 
+            <ProblemStatement />
+
+            <FeaturesGrid />
+
             {/* Process / Workflow Grid */}
             <ProcessGrid />
 
-            {/* Live Map Telemetry Console */}
-            <LiveMap issues={issues} onVote={handleVote} />
+            <GamificationTeaser />
 
-            {/* Community Transmission Ledger */}
-            <CommunityFeed
-              issues={issues}
-              onVote={handleVote}
-              onOpenReport={navigateToDashboard}
-            />
+            <OurVision />
 
-            {/* Impact Statistics */}
-            <ImpactMetrics />
+            <FinalCTA onReportClick={navigateToDashboard} />
 
             {/* Footer Branding Navigation */}
             <Footer onNavigate={(id) => {

@@ -92,7 +92,7 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
             id="status-tag"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#C0F53D] animate-ping" />
-            CIVICWATCH v2.4_ONLINE
+            LIVE IN YOUR CITY
           </motion.div>
 
           {/* Headline */}
@@ -104,8 +104,7 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
             id="hero-title"
           >
             A <span className="italic font-normal text-[#C0F53D]">smarter</span> way <br />
-            to monitor the present <br />
-            and <span className="italic font-normal text-[#C0F53D]">fix</span> the future.
+            to report civic issues.
           </motion.h1>
 
           {/* Body Text */}
@@ -116,7 +115,7 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
             className="max-w-xl text-base md:text-lg text-[#FAFFF3]/70 font-sans font-light leading-relaxed"
             id="hero-desc"
           >
-            Empowering modern citizens with decentralised tactical monitoring. Snap, AI-analyse, and instantly route critical municipal infrastructure failure directly to actionable dispatch dashboards. Keep your neighbourhood safe, green, and intact.
+            Empowering residents to snap photos of potholes, leaks, and hazards. Our AI instantly analyzes the issue and routes it to the right city department, helping keep your neighborhood safe and well-maintained.
           </motion.p>
 
           {/* Call to Actions */}
@@ -132,40 +131,22 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
               className="px-8 py-4 rounded-xl bg-[#C0F53D] text-[#0A0D04] font-sans font-bold text-sm tracking-wider uppercase cursor-pointer hover:bg-opacity-90 active:scale-95 shadow-[0_4px_25px_rgba(192,245,61,0.25)] transition-all duration-300 flex items-center justify-center gap-3"
               id="hero-btn-report"
             >
-              <Cpu className="w-4 h-4 text-[#0A0D04]" />
-              Launch Active Report
+              Report an Issue
+              <ArrowRight className="w-4 h-4 text-[#0A0D04]" />
             </button>
             
             <button
-              onClick={onViewMapClick}
+              onClick={() => {
+                const element = document.getElementById("how-it-works");
+                if (element) {
+                  element.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
               className="px-8 py-4 rounded-xl bg-[#1A2209] text-[#FAFFF3] border border-[#FAFFF3]/10 font-sans font-semibold text-sm tracking-wider uppercase cursor-pointer hover:bg-[#1A2209]/80 hover:border-[#C0F53D]/30 transition-all duration-300 flex items-center justify-center gap-2"
               id="hero-btn-viewmap"
             >
-              Explore Live Map
-              <ArrowRight className="w-4 h-4 text-[#C0F53D]" />
+              See How It Works
             </button>
-          </motion.div>
-
-          {/* Trust/Live count indicators */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.5 }}
-            className="pt-6 border-t border-[#FAFFF3]/5 w-full max-w-lg grid grid-cols-3 gap-4"
-            id="hero-quick-stats"
-          >
-            <div>
-              <div className="font-serif text-xl md:text-2xl font-bold text-[#FAFFF3]">14.2ms</div>
-              <div className="font-mono text-[9px] text-[#FAFFF3]/50 uppercase tracking-wider mt-1">Avg AI Analysis Time</div>
-            </div>
-            <div>
-              <div className="font-serif text-xl md:text-2xl font-bold text-[#FAFFF3]">99.4%</div>
-              <div className="font-mono text-[9px] text-[#FAFFF3]/50 uppercase tracking-wider mt-1">Accuracy Index</div>
-            </div>
-            <div>
-              <div className="font-serif text-xl md:text-2xl font-bold text-[#FAFFF3]">12.4K</div>
-              <div className="font-mono text-[9px] text-[#FAFFF3]/50 uppercase tracking-wider mt-1">Resolved Failures</div>
-            </div>
           </motion.div>
 
         </div>

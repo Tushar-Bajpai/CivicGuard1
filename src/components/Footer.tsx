@@ -21,7 +21,7 @@ export default function Footer({ onNavigate }: FooterProps) {
       <div className="max-w-7xl mx-auto w-full z-10 relative">
         
         {/* Main Footer Column Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           
           {/* Logo Column (Takes 2 cols on lg) */}
           <div className="lg:col-span-2 space-y-6">
@@ -64,29 +64,15 @@ export default function Footer({ onNavigate }: FooterProps) {
             </ul>
           </div>
 
-          {/* Links Column 2: Governance */}
+          {/* Links Column 2: Legal */}
           <div className="space-y-4">
             <h4 className="font-serif text-lg font-medium text-[#FAFFF3]">
-              Governance
+              Legal & Support
             </h4>
             <ul className="space-y-2.5 font-sans text-sm text-[#FAFFF3]/70 font-light">
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Impact Score Ledger</a></li>
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Communal Priority Engine</a></li>
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Sagebrush Buffer Initiative</a></li>
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Zero-Trust Node Attestation</a></li>
-            </ul>
-          </div>
-
-          {/* Links Column 3: Standards */}
-          <div className="space-y-4">
-            <h4 className="font-serif text-lg font-medium text-[#FAFFF3]">
-              Standards
-            </h4>
-            <ul className="space-y-2.5 font-sans text-sm text-[#FAFFF3]/70 font-light">
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Privacy Sovereignty protocol</a></li>
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Open Municipal Ledger specs</a></li>
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Community Watch licensing</a></li>
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Contact Dispatch Office</a></li>
+              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Privacy Policy</a></li>
+              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Terms of Service</a></li>
+              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Contact Support</a></li>
             </ul>
           </div>
 
@@ -95,7 +81,7 @@ export default function Footer({ onNavigate }: FooterProps) {
         {/* Faint separation grid line & Copyright info */}
         <div className="border-t border-[#FAFFF3]/10 pt-8 mt-12 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="font-mono text-[10px] text-[#FAFFF3]/40 tracking-wider text-center md:text-left">
-            © {currentYear} CIVICGUARD INC. ACCREDITED DECENTRALIZED PLATFORM OVER PORTLAND GRID SECTOR-04.
+            © {currentYear} CIVICGUARD INC. ALL RIGHTS RESERVED.
           </div>
           
           <button
@@ -103,7 +89,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             className="group px-4 py-2 rounded-full bg-[#0A0D04] border border-[#FAFFF3]/10 hover:border-[#C0F53D]/30 flex items-center gap-2 font-mono text-[10px] text-[#FAFFF3]/70 hover:text-[#C0F53D] transition-all duration-300 cursor-pointer"
             id="btn-scroll-top-footer"
           >
-            BACK_TO_ORBIT
+            BACK TO TOP
             <ArrowUp className="w-3.5 h-3.5 text-[#FAFFF3]/60 group-hover:text-[#C0F53D] transition-colors" />
           </button>
         </div>

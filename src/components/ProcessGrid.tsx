@@ -25,23 +25,39 @@ export default function ProcessGrid() {
       <div className="max-w-7xl mx-auto w-full z-10 relative">
         
         {/* Header Block */}
-        <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-2xl mx-auto mb-16 space-y-4"
+        >
           <span className="font-mono text-[10px] text-[#C0F53D] tracking-[0.25em] uppercase block">
-            CITIZEN RESOLUTION CYCLE
+            HOW IT WORKS
           </span>
-          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#FAFFF3] tracking-tight">
-            How we secure the <span className="italic font-normal text-[#C0F53D]">commons</span>.
+          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#FAFFF3] tracking-tight" id="how-it-works">
+            Fix your city in <span className="italic font-normal text-[#C0F53D]">three steps</span>.
           </h2>
           <p className="font-sans text-sm md:text-base text-[#FAFFF3]/60 font-light leading-relaxed">
-            A three-stage distributed pipeline connecting public eye observations directly with rapid response automated municipal routing.
+            Report issues easily and let our platform ensure they get into the right hands, tracked transparently until resolved.
           </p>
-        </div>
+        </motion.div>
 
         {/* 3-Column Glassmorphic Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" id="process-cards-grid">
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.2 } }
+          }}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8" id="process-cards-grid"
+        >
           
           {/* Step 1: Report */}
           <motion.div
+            variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
             whileHover={{ y: -4 }}
             className="group relative bg-[#1A2209]/40 backdrop-blur-md border border-[#FAFFF3]/10 rounded-2xl p-6 md:p-8 flex flex-col justify-between hover:border-[#C0F53D]/30 transition-all duration-300 hover:shadow-[0_10px_35px_rgba(192,245,61,0.06)]"
             id="card-step-1"
@@ -59,10 +75,10 @@ export default function ProcessGrid() {
             {/* Title & Description */}
             <div className="space-y-3 mb-6">
               <h3 className="font-serif text-xl md:text-2xl text-[#FAFFF3] font-medium">
-                Snap & AI <span className="italic font-normal">Categorise</span>
+                Snap & <span className="italic font-normal">Report</span>
               </h3>
               <p className="font-sans text-sm text-[#FAFFF3]/60 font-light leading-relaxed">
-                Take a quick photo of any environmental danger or failure. The onboard CivicGuard neural net instantly isolates the category, geo-coordinates, and estimated risk index.
+                Take a quick photo of a pothole, leak, or hazard. Our platform instantly identifies the issue, pinpoints the location, and estimates the severity.
               </p>
             </div>
 
@@ -87,6 +103,7 @@ export default function ProcessGrid() {
 
           {/* Step 2: Verify */}
           <motion.div
+            variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
             whileHover={{ y: -4 }}
             className="group relative bg-[#1A2209]/40 backdrop-blur-md border border-[#FAFFF3]/10 rounded-2xl p-6 md:p-8 flex flex-col justify-between hover:border-[#C0F53D]/30 transition-all duration-300 hover:shadow-[0_10px_35px_rgba(192,245,61,0.06)]"
             id="card-step-2"
@@ -104,10 +121,10 @@ export default function ProcessGrid() {
             {/* Title & Description */}
             <div className="space-y-3 mb-6">
               <h3 className="font-serif text-xl md:text-2xl text-[#FAFFF3] font-medium">
-                Democratic <span className="italic font-normal">Escalation</span>
+                Community <span className="italic font-normal">Verification</span>
               </h3>
               <p className="font-sans text-sm text-[#FAFFF3]/60 font-light leading-relaxed">
-                Neighbours browsing the map click <strong className="text-[#C0F53D] font-medium">"I'm affected too"</strong>. This builds communal priority and prevents alert fatigue, fast-tracking issues with broad public consensus.
+                Neighbors can confirm your report by clicking <strong className="text-[#C0F53D] font-medium">"I'm affected too"</strong>. This helps prioritize the most urgent issues for the city.
               </p>
             </div>
 
@@ -146,6 +163,7 @@ export default function ProcessGrid() {
 
           {/* Step 3: Resolve */}
           <motion.div
+            variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
             whileHover={{ y: -4 }}
             className="group relative bg-[#1A2209]/40 backdrop-blur-md border border-[#FAFFF3]/10 rounded-2xl p-6 md:p-8 flex flex-col justify-between hover:border-[#C0F53D]/30 transition-all duration-300 hover:shadow-[0_10px_35px_rgba(192,245,61,0.06)]"
             id="card-step-3"
@@ -166,7 +184,7 @@ export default function ProcessGrid() {
                 Automated <span className="italic font-normal">Resolution</span>
               </h3>
               <p className="font-sans text-sm text-[#FAFFF3]/60 font-light leading-relaxed">
-                The validated package is transmitted via standard webhook formats straight to municipal dashboards and local non-profits. The system logs completion transparently on-chain.
+                The verified report is sent directly to the correct city department. Track the progress in real-time until the issue is officially resolved.
               </p>
             </div>
 
@@ -196,7 +214,7 @@ export default function ProcessGrid() {
             </div>
           </motion.div>
 
-        </div>
+        </motion.div>
       </div>
     </section>
   );
