@@ -1,4 +1,4 @@
-export type IssueStatus = "active" | "resolved" | "critical";
+export type IssueStatus = "active" | "resolved" | "critical" | "pending" | "verified" | "in_progress" | "rejected";
 
 export interface CivicIssue {
   id: string;

@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { INITIAL_ISSUES } from "../data";
 import { CivicIssue, IssueStatus } from "../types";
 import IssueVisualizer from "./IssueVisualizer";
 import { MapPin, ArrowRight, ShieldAlert, CheckCircle2, AlertCircle, Info, ThumbsUp, Layers, Compass } from "lucide-react";
+import { db } from "../firebase";
+import { collection, onSnapshot, doc, updateDoc, increment } from "firebase/firestore";
 
 interface LiveMapProps {
   issues: CivicIssue[];
@@ -51,8 +53,54 @@ const getSVGCoords = (coordinatesStr: string, id: string) => {
 };
 
 export default function LiveMap({ issues, onVote }: LiveMapProps) {
-  // Filter out the fake/dummy issues from the map
-  const activeCitizenIssues = issues.filter((issue) => !dummyIds.includes(issue.id));
+  const [liveIssues, setLiveIssues] = useState<CivicIssue[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!db) {
+      setLiveIssues(issues.filter((issue) => !dummyIds.includes(issue.id)));
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onSnapshot(
+      collection(db, "issues"),
+      (snapshot) => {
+        const items: CivicIssue[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          items.push({
+            id: docSnap.id,
+            category: data.category || "",
+            title: data.title || "",
+            description: data.description || "",
+            confidence: data.confidence ?? 0.95,
+            coordinates: data.location ? `${data.location.lat}, ${data.location.lng}` : "0, 0",
+            status: data.status === "resolved" ? "resolved" : (data.severity === "critical" ? "critical" : "active"),
+            votes: data.confirmCount || 0,
+            locationName: data.location?.name || "",
+            dateReported: data.createdAt ? new Date(data.createdAt).toISOString().replace("T", " ").substring(0, 16) + " UTC" : "",
+            image: data.imageUrl || data.category || "other_infrastructure",
+            imageUrl: data.imageUrl || "",
+            severity: data.severity || "medium",
+            brief_description: data.description || "",
+            aiOutput: data.aiOutput || `AI Analysis: Severity is ${data.severity || "normal"}.`
+          });
+        });
+        setLiveIssues(items);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error loading issues from Firestore:", error);
+        setLiveIssues(issues.filter((issue) => !dummyIds.includes(issue.id)));
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [issues]);
+
+  const activeCitizenIssues = liveIssues;
   
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | IssueStatus>("all");
@@ -61,12 +109,32 @@ export default function LiveMap({ issues, onVote }: LiveMapProps) {
   const activeSelectedId = selectedId || activeCitizenIssues[0]?.id || null;
   const selectedIssue = activeCitizenIssues.find((i) => i.id === activeSelectedId) || activeCitizenIssues[0];
 
-  const filteredIssues = filter === "all" 
-    ? activeCitizenIssues 
-    : activeCitizenIssues.filter((i) => i.status === filter);
+  const filteredIssues = activeCitizenIssues.filter((issue) => {
+    if (filter === "all") return true;
+    if (filter === "critical") {
+      return (issue.severity?.toLowerCase() === "critical" || issue.status === "critical");
+    }
+    if (filter === "resolved") {
+      return issue.status === "resolved";
+    }
+    if (filter === "active") {
+      return issue.status !== "resolved";
+    }
+    return true;
+  });
 
-  const handleEscalateOnMap = (id: string) => {
+  const handleEscalateOnMap = async (id: string) => {
     onVote(id);
+    if (db) {
+      try {
+        const docRef = doc(db, "issues", id);
+        await updateDoc(docRef, {
+          confirmCount: increment(1)
+        });
+      } catch (err) {
+        console.error("Error upvoting in Firestore:", err);
+      }
+    }
   };
 
 

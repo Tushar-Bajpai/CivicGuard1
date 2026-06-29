@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { CivicIssue, IssueStatus } from "../types";
 import IssueVisualizer from "./IssueVisualizer";
+import { db } from "../firebase";
+import { doc, updateDoc, increment } from "firebase/firestore";
 
 // Import MapLibre styles
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -140,6 +142,7 @@ export default function DashboardLayout({
   // Helper to format a relative time
   const getRelativeTime = (dateString: string): string => {
     try {
+      if (!dateString) return "2 hours ago";
       const cleaned = dateString.replace(" UTC", "Z").replace(" ", "T");
       const date = new Date(cleaned);
       if (isNaN(date.getTime())) {
@@ -164,24 +167,52 @@ export default function DashboardLayout({
 
   // Status mapping to timeline stepper
   const getStatusStage = (status: string, votes: number) => {
-    if (status === "resolved") return "Resolved";
+    const normalized = status?.toLowerCase() || "";
+    if (normalized === "resolved") return "Resolved";
+    if (normalized === "in_progress" || normalized === "in progress") return "In Progress";
+    if (normalized === "verified") return "Verified";
+    if (normalized === "pending") return "Pending";
+    
+    // Fallback/Legacy matching
     if (status === "critical") return "In Progress";
     if (votes > 50) return "Verified";
     return "Pending";
   };
 
-  const handleAffectedClick = (id: string) => {
+  const handleAffectedClick = async (id: string) => {
     setAffectedCounts(prev => ({
       ...prev,
       [id]: (prev[id] || 0) + 1
     }));
+    if (db) {
+      try {
+        const docRef = doc(db, "issues", id);
+        await updateDoc(docRef, {
+          confirmCount: increment(1),
+          updatedAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error("Error updating confirmCount in Firestore:", err);
+      }
+    }
   };
 
-  const handleVerifyClick = (id: string) => {
+  const handleVerifyClick = async (id: string) => {
     setVerifiedIssues(prev => ({
       ...prev,
       [id]: true
     }));
+    if (db) {
+      try {
+        const docRef = doc(db, "issues", id);
+        await updateDoc(docRef, {
+          status: "verified",
+          updatedAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error("Error updating status in Firestore:", err);
+      }
+    }
   };
 
   return (
@@ -603,7 +634,7 @@ export default function DashboardLayout({
                 const currentStepperStage = getStatusStage(selectedIssue.status, selectedIssue.votes);
                 const currentStepperIdx = stepperStages.indexOf(currentStepperStage);
 
-                const currentAffectedCount = (affectedCounts[selectedIssue.id] || 0) + (selectedIssue.votes > 100 ? 12 : 3);
+                const currentAffectedCount = selectedIssue.votes + (affectedCounts[selectedIssue.id] || 0);
                 const isAlreadyVerified = verifiedIssues[selectedIssue.id] || selectedIssue.status === "resolved";
 
                 return (
@@ -622,13 +653,15 @@ export default function DashboardLayout({
 
                       {/* Severity Badge */}
                       <span className={`inline-flex items-center text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold border ${
-                        selectedIssue.status === "critical" 
+                        selectedIssue.severity === "critical" 
                           ? "bg-red-500/10 text-red-400 border-red-500/30" 
-                          : selectedIssue.status === "resolved" 
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" 
-                            : "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
+                          : selectedIssue.severity === "high"
+                            ? "bg-orange-500/10 text-orange-400 border-orange-500/30"
+                            : selectedIssue.severity === "medium"
+                              ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
+                              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                       }`}>
-                        {selectedIssue.status === "critical" ? "Critical Priority" : selectedIssue.status === "resolved" ? "Resolved" : "Active"}
+                        {selectedIssue.severity ? `${selectedIssue.severity} Priority` : "Medium Priority"}
                       </span>
                     </div>
 
