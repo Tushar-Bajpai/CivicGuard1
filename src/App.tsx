@@ -170,10 +170,7 @@ export default function App() {
           >
             {/* Floating Pill Navigation */}
             <Navigation 
-              onReportClick={() => {
-                navigateToDashboard();
-                setIsReportOpen(true);
-              }} 
+              onReportClick={navigateToDashboard} 
               activeSection={activeSection}
               onNavigate={(id) => {
                 if (id === "map") {
@@ -190,10 +187,7 @@ export default function App() {
 
             {/* Hero Header Presentation */}
             <Hero 
-              onReportClick={() => {
-                navigateToDashboard();
-                setIsReportOpen(true);
-              }} 
+              onReportClick={navigateToDashboard} 
               onViewMapClick={navigateToDashboard}
             />
 
@@ -207,10 +201,7 @@ export default function App() {
             <CommunityFeed 
               issues={issues}
               onVote={handleVote}
-              onOpenReport={() => {
-                navigateToDashboard();
-                setIsReportOpen(true);
-              }}
+              onOpenReport={navigateToDashboard}
             />
 
             {/* Impact Statistics */}
