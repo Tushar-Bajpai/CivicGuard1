@@ -38,15 +38,15 @@ export default function Footer({ onNavigate }: FooterProps) {
               </span>
             </button>
             <p className="font-sans text-sm text-[#FAFFF3]/60 font-light leading-relaxed max-w-sm">
-              Securing local commons and ecological infrastructure through decentralized AI vision telemetry. Empowering everyday citizens with instantaneous, prioritized municipal resolution standardizations.
+              Improving local neighborhoods and public infrastructure through collaborative civic reporting. Empowering everyday citizens with real-time, prioritized municipal updates and resolution tracking.
             </p>
             {/* Social handles */}
-            <div className="flex items-center gap-4 text-[#FAFFF3]/50">
+            <div className="flex items-center gap-4 text-[#FAFFF3]/50 font-mono text-[9px]">
               <a href="#twitter" className="hover:text-[#C0F53D] transition-colors duration-200" id="link-twitter"><Twitter className="w-4 h-4" /></a>
               <a href="#github" className="hover:text-[#C0F53D] transition-colors duration-200" id="link-github"><Github className="w-4 h-4" /></a>
               <a href="#web" className="hover:text-[#C0F53D] transition-colors duration-200" id="link-web"><Globe className="w-4 h-4" /></a>
-              <span className="font-mono text-[9px] tracking-wider uppercase ml-2 bg-[#0A0D04] px-2.5 py-0.5 rounded border border-[#FAFFF3]/5 text-[#C0F53D]">
-                DECENTRALIZED_NODE_OK
+              <span className="tracking-wider uppercase ml-2 bg-[#0A0D04] px-2.5 py-0.5 rounded border border-[#FAFFF3]/5 text-[#C0F53D]">
+                COMMUNITY NETWORK
               </span>
             </div>
           </div>

@@ -78,13 +78,13 @@ export default function LiveMap({ issues, onVote }: LiveMapProps) {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div className="space-y-3">
             <span className="font-mono text-[10px] text-[#C0F53D] tracking-[0.25em] uppercase block">
-              INDIA SECTOR GRID 09
+              LIVE REPORT SUMMARY
             </span>
             <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#FAFFF3] tracking-tight">
-              Tactical <span className="italic font-normal text-[#C0F53D]">Live Map</span> interface.
+              Live Issue <span className="italic font-normal text-[#C0F53D]">Map</span> interface.
             </h2>
             <p className="font-sans text-sm text-[#FAFFF3]/60 max-w-xl font-light">
-              Real-time ecological telemetry and municipal failures focused on India Sector. Select active citizen nodes to pull diagnostic reports, vote on critical priorities, or inspect automated dispatch queues.
+              Real-time infrastructure and community issues reported by residents. Select active report pins to pull up details, upvote critical priorities, or track status.
             </p>
           </div>
 
@@ -114,11 +114,11 @@ export default function LiveMap({ issues, onVote }: LiveMapProps) {
           <div className="lg:col-span-7 bg-[#1A2209]/20 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-[#FAFFF3]/10 flex flex-col justify-between min-h-[400px] md:min-h-[500px] relative overflow-hidden" id="map-viewport">
             {/* Watermark grid coordinate tags */}
             <div className="absolute top-4 left-4 font-mono text-[8px] text-[#FAFFF3]/30 uppercase flex items-center gap-1.5 pointer-events-none">
-              <Compass className="w-3.5 h-3.5 animate-spin" />
-              GRID_SYSTEM_OK // IND_SECTOR_20.5
+              <Compass className="w-3.5 h-3.5" />
+              COMMUNITY_MAP_OK // REGION_INDIA
             </div>
             <div className="absolute bottom-4 left-4 font-mono text-[8px] text-[#FAFFF3]/30 pointer-events-none">
-              SCALE: 1:5,000,000 | NEW DELHI, INDIA
+              COMMUNITY LANDSCAPE VIEW
             </div>
 
             {/* Custom SVG Tactical Map */}
@@ -170,7 +170,7 @@ export default function LiveMap({ issues, onVote }: LiveMapProps) {
                         AWAITING CITIZEN REPORTS
                       </p>
                       <p className="text-[10px] text-[#FAFFF3]/60 max-w-xs font-light">
-                        No live incident telemetry reported in the India Sector yet. Upload an issue from the Landing Page or Dashboard to establish a live connection node on the map.
+                        No live incident reported in the region yet. Upload an issue from the Landing Page or Dashboard to establish a live connection pin on the map.
                       </p>
                     </div>
                   </foreignObject>
@@ -312,8 +312,8 @@ export default function LiveMap({ issues, onVote }: LiveMapProps) {
 
             {/* Micro-Instructions for navigation */}
             <div className="mt-4 flex items-center justify-between text-[#FAFFF3]/50 text-[10px] font-mono border-t border-[#FAFFF3]/5 pt-3">
-              <span>ACTIVE_SENSORS: {filteredIssues.length} DISPLAYED</span>
-              <span>CLICK GLOWING NODES TO RE-SECT REPORT</span>
+              <span>ACTIVE REPORTS: {filteredIssues.length} DISPLAYED</span>
+              <span>CLICK GLOWING NODES TO VIEW DETAILS</span>
             </div>
           </div>
 
@@ -400,7 +400,7 @@ export default function LiveMap({ issues, onVote }: LiveMapProps) {
                       id={`btn-escalate-sidebar-${selectedIssue.id}`}
                     >
                       <ThumbsUp className="w-3.5 h-3.5" />
-                      VOTE_TO_ESCALATE
+                      Upvote Issue
                     </button>
                   </div>
 
@@ -412,9 +412,9 @@ export default function LiveMap({ issues, onVote }: LiveMapProps) {
                   <Info className="w-6 h-6 text-[#C0F53D]" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="font-serif text-lg text-[#FAFFF3]">No Active Node Selected</h3>
+                  <h3 className="font-serif text-lg text-[#FAFFF3]">No Active Incident Selected</h3>
                   <p className="text-xs text-[#FAFFF3]/60 max-w-xs font-light">
-                    The tactical dashboard is currently idle. Once citizen uploads are transmitted, select a coordinate node from the map to view detailed analytics.
+                    Select an incident point on the map to inspect community feedback, neighborhood votes, and reported evidence.
                   </p>
                 </div>
               </div>

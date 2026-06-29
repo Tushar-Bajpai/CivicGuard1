@@ -44,3 +44,41 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #C0F53D;
 }
+
+/* Custom styling for Maplibre popup to fit the sci-fi HUD theme */
+.maplibregl-popup-content {
+  background: #1A2209 !important;
+  color: #FAFFF3 !important;
+  border: 1px solid rgba(192, 245, 61, 0.4) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9) !important;
+  font-family: var(--font-sans);
+  padding: 12px 14px !important;
+}
+
+.maplibregl-popup-tip {
+  border-top-color: #1A2209 !important;
+  border-bottom-color: #1A2209 !important;
+}
+
+.maplibregl-popup-close-button {
+  color: #FAFFF3 !important;
+  font-size: 16px !important;
+  padding: 4px 8px !important;
+  outline: none !important;
+  border-radius: 0 16px 0 0;
+  transition: all 0.2s ease;
+}
+.maplibregl-popup-close-button:hover {
+  background-color: rgba(250, 255, 243, 0.1) !important;
+  color: #C0F53D !important;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: #1A2209 !important; }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #1A2209 !important; }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #1A2209 !important; }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #1A2209 !important; }
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip { border-bottom-color: #1A2209 !important; }
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: #1A2209 !important; }
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip { border-top-color: #1A2209 !important; }
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: #1A2209 !important; }

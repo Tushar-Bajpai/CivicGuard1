@@ -13,6 +13,9 @@ export interface CivicIssue {
   dateReported: string;
   image: string;
   aiOutput?: string;
+  severity?: string;
+  brief_description?: string;
+  imageUrl?: string;
 }
 
 export interface NavigationTab {

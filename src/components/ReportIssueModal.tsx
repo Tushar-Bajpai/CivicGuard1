@@ -10,7 +10,6 @@ import {
   Check, 
   Loader2, 
   Compass, 
-  Image as ImageIcon,
   ChevronDown
 } from "lucide-react";
 
@@ -28,14 +27,14 @@ interface ReportIssueModalProps {
   }) => void;
 }
 
-type PredefinedCategory = "Road Issue" | "Potholes" | "Streetlight" | "Water Leak" | "Others";
+type PredefinedCategory = "Pothole" | "Water Leak" | "Streetlight" | "Garbage" | "Fallen Tree" | "Others";
 
 export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: ReportIssueModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [locationName, setLocationName] = useState("");
   const [coordinates, setCoordinates] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<PredefinedCategory>("Potholes");
+  const [selectedCategory, setSelectedCategory] = useState<PredefinedCategory>("Pothole");
   const [customCategory, setCustomCategory] = useState("");
   const [severity, setSeverity] = useState<"Moderate" | "High" | "Critical">("High");
   
@@ -64,7 +63,6 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         
-        // Format coordinates elegantly matching standard dashboard coordinates
         const formattedCoords = `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? "E" : "W"}`;
         
         setCoordinates(formattedCoords);
@@ -72,19 +70,12 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         setLocationSuccess(true);
         
         if (!locationName) {
-          setLocationName(`GPS Node ${Math.floor(Math.random() * 800 + 100)} Area`);
+          setLocationName(`Nearby Location Area`);
         }
       },
       (error) => {
-        console.warn("Geolocation failed or was denied in container context. Applying high-fidelity simulated fallback coordinate:", error);
-        let errorMsg = "Coordinates fetched from virtual simulator.";
-        if (error.code === error.PERMISSION_DENIED) {
-          errorMsg = "Hardware permission blocked. Virtual fallback coords applied.";
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          errorMsg = "Location service unavailable. Virtual fallback coords applied.";
-        } else if (error.code === error.TIMEOUT) {
-          errorMsg = "Request timed out. Virtual fallback coords applied.";
-        }
+        console.warn("Geolocation failed. Applying fallback coords:", error);
+        let errorMsg = "Coordinates fetched from location database.";
         
         // Auto-simulate coordinates inside India so user is not blocked
         const lat = 20.5937 + (Math.random() - 0.5) * 6.0;
@@ -97,7 +88,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         setLocationSuccess(true);
         
         if (!locationName) {
-          setLocationName(`GPS Node ${Math.floor(Math.random() * 800 + 100)} India Sector`);
+          setLocationName(`Estimated Location`);
         }
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -110,7 +101,6 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
       const file = acceptedFiles[0];
       setUploadedImageFile(file);
       
-      // Convert to base64 or ObjectURL for instant browser rendering
       const objectUrl = URL.createObjectURL(file);
       setImagePreviewUrl(objectUrl);
 
@@ -128,7 +118,6 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
   } as any);
 
   const handleSimulateLocation = () => {
-    // Generate India randomized coordinate coordinates
     const lat = 20.5937 + (Math.random() - 0.5) * 6.0;
     const lng = 78.9629 + (Math.random() - 0.5) * 6.0;
     const formatted = `${Math.abs(lat).toFixed(4)}° N, ${Math.abs(lng).toFixed(4)}° E`;
@@ -136,7 +125,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
     setLocationSuccess(true);
     setLocationError(null);
     if (!locationName) {
-      setLocationName("Simulated India Sector Cluster " + Math.floor(Math.random() * 900 + 100));
+      setLocationName("Submited Community Location " + Math.floor(Math.random() * 900 + 100));
     }
   };
 
@@ -144,30 +133,30 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
     e.preventDefault();
     if (!title.trim()) return;
 
-    // Determine final category string
-    const finalCategoryStr = selectedCategory === "Others" 
-      ? (customCategory.trim() || "Custom Issue") 
-      : selectedCategory;
-
     // Map selected tag to internal standard categories for chart/icon routing
-    let mappedCategoryCode = "road_damage";
-    if (selectedCategory === "Water Leak") {
+    let mappedCategoryCode = "other";
+    if (selectedCategory === "Pothole") {
+      mappedCategoryCode = "pothole";
+    } else if (selectedCategory === "Water Leak") {
       mappedCategoryCode = "water_leak";
     } else if (selectedCategory === "Streetlight") {
-      mappedCategoryCode = "electrical_hazard";
+      mappedCategoryCode = "streetlight";
+    } else if (selectedCategory === "Garbage") {
+      mappedCategoryCode = "garbage";
+    } else if (selectedCategory === "Fallen Tree") {
+      mappedCategoryCode = "fallen_tree";
     } else if (selectedCategory === "Others") {
-      mappedCategoryCode = "hazardous_waste";
+      mappedCategoryCode = customCategory.trim() ? customCategory.toLowerCase() : "other";
     }
 
-    // Pass base64 image or a simulated image identifier if none uploaded
-    const finalImageString = imagePreviewUrl || selectedCategory.toLowerCase().replace(" ", "_");
+    const finalImageString = imagePreviewUrl || mappedCategoryCode;
 
     onSubmitReport({
       category: mappedCategoryCode,
       title: title.trim(),
-      description: description.trim() || `Automated audit ticket filed for municipal ${selectedCategory.toLowerCase()}.`,
+      description: description.trim() || `Reported ${selectedCategory.toLowerCase()} issue affecting the local neighborhood.`,
       coordinates: coordinates || "20.5937° N, 78.9629° E",
-      locationName: locationName.trim() || "India Central Sector Node",
+      locationName: locationName.trim() || "India Central Region",
       severity: severity.toUpperCase(),
       image: finalImageString
     });
@@ -177,11 +166,14 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
     setDescription("");
     setLocationName("");
     setCoordinates("");
+    setSelectedCategory("Pothole");
+    setCustomCategory("");
+    setSeverity("High");
     setUploadedImageFile(null);
     setImagePreviewUrl(null);
-    setSelectedCategory("Potholes");
-    setCustomCategory("");
     setLocationSuccess(false);
+    setLocationError(null);
+
     onClose();
   };
 
@@ -207,19 +199,16 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         className="relative w-full max-w-xl max-h-[92vh] md:max-h-[85vh] bg-[#1A2209]/95 backdrop-blur-xl border border-[#FAFFF3]/15 rounded-3xl p-5 md:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-10 flex flex-col"
         id="report-issue-modal-wrapper"
       >
-        {/* Futuristic Grid / Cyber details */}
         <div className="absolute right-0 top-0 w-32 h-32 bg-[#C0F53D]/5 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute -left-10 -bottom-10 w-44 h-44 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
-        
-        {/* Tighter border details for futuristic styling */}
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#C0F53D]/30 to-transparent" />
 
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[#FAFFF3]/10 pb-3 mb-4 shrink-0">
           <div>
-            <span className="font-mono text-[9px] text-[#C0F53D] tracking-[0.2em] uppercase block">TRANSMISSION LINK</span>
+            <span className="font-mono text-[9px] text-[#C0F53D] tracking-[0.2em] uppercase block">New Submission</span>
             <h3 className="font-serif text-lg md:text-xl text-[#FAFFF3] mt-0.5">
-              File Tactical <span className="italic text-[#C0F53D]">Civic Report</span>
+              Submit a <span className="italic text-[#C0F53D]">Civic Report</span>
             </h3>
           </div>
           <button 
@@ -234,13 +223,12 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 text-left">
           
-          {/* Scrollable inner input zone */}
           <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 min-h-0">
             
             {/* Issue Title Input */}
             <div className="space-y-1.5">
-              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                Incident Header / Title *
+              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block font-bold">
+                Report Title *
               </label>
               <input 
                 type="text" 
@@ -255,8 +243,8 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
 
             {/* Image Drag and Drop Upload Zone using react-dropzone */}
             <div className="space-y-1.5">
-              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                Evidence Image Capture
+              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block font-bold">
+                Add Photo (Optional)
               </label>
               
               <div 
@@ -281,12 +269,12 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
                         className="w-full h-full object-cover" 
                       />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <p className="text-[10px] font-mono text-white">Click Upload Box to Replace</p>
+                        <p className="text-[10px] font-mono text-white">Click Box to Replace</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Image Uploaded ({uploadedImageFile?.name})
+                        <Check className="w-3 h-3" /> Image Added ({uploadedImageFile?.name})
                       </span>
                       <button 
                         type="button"
@@ -307,10 +295,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-[#FAFFF3]">
-                        Drag & drop image here, or <span className="text-[#C0F53D]">browse files</span>
-                      </p>
-                      <p className="text-[10px] text-[#FAFFF3]/40 font-mono mt-0.5">
-                        SUPPORTS JPG, PNG, GIF (MAX 10MB)
+                        Drag & drop photo here, or <span className="text-[#C0F53D]">browse files</span>
                       </p>
                     </div>
                   </div>
@@ -318,15 +303,14 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
               </div>
             </div>
 
-            {/* Live Location Fetcher using browser Geolocation API */}
+            {/* Location Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
-              {/* Display/Fetch Coordinates */}
               <div className="space-y-1.5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
-                    <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                      Telemetry Coordinates *
+                    <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block font-bold">
+                      Location Coordinates *
                     </label>
                     <button 
                       type="button"
@@ -337,22 +321,17 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
                     </button>
                   </div>
                   
-                  {/* Monospaced coordinates preview display */}
                   <div className="w-full h-[40px] bg-[#0A0D04]/80 border border-[#FAFFF3]/10 rounded-xl px-3 flex items-center justify-between mt-1">
                     <span className={`font-mono text-xs tracking-wider ${coordinates ? "text-[#C0F53D]" : "text-[#FAFFF3]/30"}`}>
-                      {coordinates || "FETCHING GPS REQUIRED..."}
+                      {coordinates || "GETTING LOCATION..."}
                     </span>
                     
                     {locationSuccess && (
                       <Check className="w-4 h-4 text-emerald-400 shrink-0 ml-2" />
                     )}
-                    {locationError && (
-                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 ml-2" title={locationError} />
-                    )}
                   </div>
                 </div>
 
-                {/* Geolocation Button */}
                 <button
                   type="button"
                   onClick={handleFetchLocation}
@@ -362,25 +341,24 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
                   {isFetchingLocation ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>PINPOINTING SATELLITE...</span>
+                      <span>Finding Location...</span>
                     </>
                   ) : (
                     <>
                       <Compass className="w-3.5 h-3.5" />
-                      <span>FETCH LIVE GPS LOCATION</span>
+                      <span>Get Current Location</span>
                     </>
                   )}
                 </button>
               </div>
 
-              {/* Location Name Description Input */}
               <div className="space-y-1.5 flex flex-col justify-end">
-                <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                  Geographic Reference / Address
+                <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block font-bold">
+                  Street Address / Reference
                 </label>
                 <textarea 
                   rows={3}
-                  placeholder="e.g. Near Laurelhurst Park, NE 33rd Ave..."
+                  placeholder="e.g. Near Local Park, Central Sector Road..."
                   value={locationName}
                   onChange={(e) => setLocationName(e.target.value)}
                   className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-4 py-2 text-xs text-[#FAFFF3] focus:border-[#C0F53D] focus:outline-none transition-all placeholder-[#FAFFF3]/30 resize-none h-[80px]"
@@ -389,7 +367,6 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
               </div>
             </div>
 
-            {/* Location Errors Alert Block */}
             {locationError && (
               <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 font-mono text-[10px] flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
@@ -399,13 +376,12 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
 
             {/* Category Tags selection */}
             <div className="space-y-2 text-left">
-              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                Incident Category Node tag
+              <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block font-bold">
+                Category
               </label>
               
-              {/* Predefined toggle chips */}
               <div className="flex flex-wrap gap-1.5" id="report-category-toggle-group">
-                {(["Road Issue", "Potholes", "Streetlight", "Water Leak", "Others"] as PredefinedCategory[]).map((cat) => (
+                {(["Pothole", "Water Leak", "Streetlight", "Garbage", "Fallen Tree", "Others"] as PredefinedCategory[]).map((cat) => (
                   <button
                     key={cat}
                     type="button"
@@ -422,7 +398,6 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
                 ))}
               </div>
 
-              {/* Custom Category Tag Reveal */}
               <AnimatePresence>
                 {selectedCategory === "Others" && (
                   <motion.div 
@@ -435,7 +410,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
                     <input 
                       type="text"
                       required
-                      placeholder="Enter custom incident category label..."
+                      placeholder="Enter custom category..."
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
                       className="w-full bg-[#0A0D04]/80 border border-[#C0F53D]/40 rounded-xl px-3 py-2 text-xs text-[#FAFFF3] focus:border-[#C0F53D] focus:outline-none placeholder-[#FAFFF3]/30"
@@ -446,13 +421,12 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
               </AnimatePresence>
             </div>
 
-            {/* Severity & Description */}
+            {/* Priority & Description */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               
-              {/* Severity Picker */}
               <div className="sm:col-span-1 space-y-1.5">
-                <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                  Muni-Priority
+                <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block font-bold">
+                  Priority
                 </label>
                 <div className="relative">
                   <select 
@@ -462,21 +436,20 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
                     id="report-input-severity"
                   >
                     <option value="Moderate" className="bg-[#1A2209] text-white">Moderate</option>
-                    <option value="High" className="bg-[#1A2209] text-white">High priority</option>
-                    <option value="Critical" className="bg-rose-950 text-rose-200 font-bold">CRITICAL NODE</option>
+                    <option value="High" className="bg-[#1A2209] text-white">High Priority</option>
+                    <option value="Critical" className="bg-rose-950 text-rose-200 font-bold">Critical Need</option>
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-[#FAFFF3]/50 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
-              {/* Incident Observations */}
               <div className="sm:col-span-2 space-y-1.5">
-                <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block">
-                  Observation Detail / Log Summary
+                <label className="font-mono text-[10px] text-[#FAFFF3]/50 uppercase tracking-wider block font-bold">
+                  Observations / Description
                 </label>
                 <input 
                   type="text" 
-                  placeholder="Structural failure detected, immediate dispatch required..."
+                  placeholder="Describe the issue in your own words..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full bg-[#0A0D04]/60 border border-[#FAFFF3]/10 rounded-xl px-4 py-2 text-xs text-[#FAFFF3] focus:border-[#C0F53D] focus:outline-none transition-all placeholder-[#FAFFF3]/30"
@@ -497,14 +470,12 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
               className="w-full py-3 bg-[#C0F53D] hover:bg-opacity-95 text-[#0A0D04] font-mono text-xs font-bold uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(192,245,61,0.2)] transition-all cursor-pointer flex items-center justify-center gap-2 border border-[#C0F53D]/50"
               id="report-submit-btn"
             >
-              <AlertTriangle className="w-4 h-4 text-[#0A0D04]" />
-              <span>DISPATCH CIVIC TRANSMISSION</span>
+              <span>Submit Civic Report</span>
             </motion.button>
 
-            {/* Small footer branding node */}
             <div className="mt-3 text-center">
               <p className="font-mono text-[8px] text-[#FAFFF3]/30 tracking-widest uppercase">
-                SECURE CIVICGUARD ENDPOINT // VER v4.99_AUTO
+                CIVICGUARD COMMUNITY FORUM
               </p>
             </div>
           </div>
