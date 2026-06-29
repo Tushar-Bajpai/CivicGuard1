@@ -86,9 +86,9 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
           errorMsg = "Request timed out. Virtual fallback coords applied.";
         }
         
-        // Auto-simulate coordinates so user is not blocked
-        const lat = 45.5200 + (Math.random() - 0.5) * 0.03;
-        const lng = -122.6800 + (Math.random() - 0.5) * 0.03;
+        // Auto-simulate coordinates inside India so user is not blocked
+        const lat = 20.5937 + (Math.random() - 0.5) * 6.0;
+        const lng = 78.9629 + (Math.random() - 0.5) * 6.0;
         const formattedCoords = `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? "E" : "W"}`;
         
         setCoordinates(formattedCoords);
@@ -97,7 +97,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         setLocationSuccess(true);
         
         if (!locationName) {
-          setLocationName(`GPS Node ${Math.floor(Math.random() * 800 + 100)} Area (Simulated)`);
+          setLocationName(`GPS Node ${Math.floor(Math.random() * 800 + 100)} India Sector`);
         }
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -128,15 +128,15 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
   } as any);
 
   const handleSimulateLocation = () => {
-    // Generate Portland center randomized mock coordinate coordinates
-    const lat = 45.50 + Math.random() * 0.05;
-    const lng = -122.68 + Math.random() * 0.05;
-    const formatted = `${Math.abs(lat).toFixed(4)}° N, ${Math.abs(lng).toFixed(4)}° W`;
+    // Generate India randomized coordinate coordinates
+    const lat = 20.5937 + (Math.random() - 0.5) * 6.0;
+    const lng = 78.9629 + (Math.random() - 0.5) * 6.0;
+    const formatted = `${Math.abs(lat).toFixed(4)}° N, ${Math.abs(lng).toFixed(4)}° E`;
     setCoordinates(formatted);
     setLocationSuccess(true);
     setLocationError(null);
     if (!locationName) {
-      setLocationName("Simulated Sector Cluster " + Math.floor(Math.random() * 900 + 100));
+      setLocationName("Simulated India Sector Cluster " + Math.floor(Math.random() * 900 + 100));
     }
   };
 
@@ -166,8 +166,8 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
       category: mappedCategoryCode,
       title: title.trim(),
       description: description.trim() || `Automated audit ticket filed for municipal ${selectedCategory.toLowerCase()}.`,
-      coordinates: coordinates || "45.5230° N, 122.6760° W",
-      locationName: locationName.trim() || "Portland Central Grid Node",
+      coordinates: coordinates || "20.5937° N, 78.9629° E",
+      locationName: locationName.trim() || "India Central Sector Node",
       severity: severity.toUpperCase(),
       image: finalImageString
     });

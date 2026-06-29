@@ -195,7 +195,7 @@ export default function App() {
             <ProcessGrid />
 
             {/* Live Map Telemetry Console */}
-            <LiveMap />
+            <LiveMap issues={issues} onVote={handleVote} />
 
             {/* Community Transmission Ledger */}
             <CommunityFeed 

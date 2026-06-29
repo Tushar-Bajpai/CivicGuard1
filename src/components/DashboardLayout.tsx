@@ -86,6 +86,7 @@ export default function DashboardLayout({
 
   const SECTOR_PRESETS = [
     { name: "Global Grid 🌍", longitude: 0, latitude: 20, zoom: 1.5, pitch: 0, bearing: 0 },
+    { name: "India Grid 🇮🇳", longitude: 78.9629, latitude: 20.5937, zoom: 4.8, pitch: 0, bearing: 0 },
     { name: "Portland (OR)", longitude: -122.6762, latitude: 45.5234, zoom: 11.8, pitch: 35, bearing: -10 },
     { name: "New York Sector", longitude: -74.0060, latitude: 40.7128, zoom: 11.5, pitch: 40, bearing: 15 },
     { name: "London Terminal", longitude: -0.1278, latitude: 51.5074, zoom: 11.5, pitch: 30, bearing: -5 },
@@ -95,7 +96,7 @@ export default function DashboardLayout({
   ];
 
   const [currentMapStyle, setCurrentMapStyle] = useState("https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json");
-  const [selectedPresetCity, setSelectedPresetCity] = useState("Portland (OR)");
+  const [selectedPresetCity, setSelectedPresetCity] = useState("India Grid 🇮🇳");
   const [isCompassDeckExpanded, setIsCompassDeckExpanded] = useState(true);
 
   const handleZoomIn = () => {
@@ -128,13 +129,13 @@ export default function DashboardLayout({
     }
   };
 
-  // Initial View State centered on Portland, OR
+  // Initial View State centered on India
   const [viewState, setViewState] = useState({
-    longitude: -122.6762,
-    latitude: 45.5234,
-    zoom: 11.8,
-    pitch: 35,
-    bearing: -10
+    longitude: 78.9629,
+    latitude: 20.5937,
+    zoom: 4.8,
+    pitch: 0,
+    bearing: 0
   });
 
   const selectedIssue = issues.find((i) => i.id === selectedIssueId) || issues[0];
@@ -260,6 +261,8 @@ export default function DashboardLayout({
   };
 
   // Filter and Search Issues
+  const dummyIds = ["CG-2026-089", "CG-2026-092", "CG-2026-074", "CG-2026-101", "CG-2026-061"];
+
   const filteredIssues = issues.filter((issue) => {
     const matchesFilter = filter === "all" || issue.status === filter;
     const matchesSearch = 
@@ -707,7 +710,7 @@ export default function DashboardLayout({
                 <NavigationControl position="top-left" />
 
                 {/* Render issues from our data */}
-                {filteredIssues.map((issue) => {
+                {filteredIssues.filter((issue) => !dummyIds.includes(issue.id)).map((issue) => {
                   const coords = getCoordinates(issue.coordinates);
                   const isSelected = issue.id === selectedIssueId;
                   const isUserReported = issue.id.startsWith("CG-2026-");
@@ -870,7 +873,7 @@ export default function DashboardLayout({
                 })}
 
                 {/* Render Eco-Buffer Rings if toggled */}
-                {showEcoBuffer && filteredIssues.map((issue) => {
+                {showEcoBuffer && filteredIssues.filter((issue) => !dummyIds.includes(issue.id)).map((issue) => {
                   const coords = getCoordinates(issue.coordinates);
                   const cat = getCategoryDetails(issue.category);
                   

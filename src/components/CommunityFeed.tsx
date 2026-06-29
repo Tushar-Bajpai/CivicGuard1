@@ -5,6 +5,40 @@ import { CivicIssue } from "../types";
 import IssueVisualizer from "./IssueVisualizer";
 import { Vote, Calendar, MessageSquare, Tag, ThumbsUp, AlertTriangle, CheckCircle, ShieldAlert } from "lucide-react";
 
+// Helper to format a relative time from a dateReported string
+function getRelativeTime(dateString: string): string {
+  try {
+    const cleaned = dateString.replace(" UTC", "Z").replace(" ", "T");
+    const date = new Date(cleaned);
+    
+    if (isNaN(date.getTime())) {
+      return "";
+    }
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    
+    if (diffMs < 0) {
+      return "just now";
+    }
+
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+
+    const diffMonths = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30));
+    return `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
+  } catch (e) {
+    return "";
+  }
+}
+
 interface CommunityFeedProps {
   issues: CivicIssue[];
   onVote: (id: string) => void;
@@ -106,15 +140,21 @@ export default function CommunityFeed({ issues, onVote, onOpenReport }: Communit
                     </span>
                     
                     <div className="flex items-center gap-2">
-                      <span className={`w-1.5 h-1.5 rounded-full ${
+                      <span className={`font-mono text-[9px] tracking-[0.05em] uppercase px-2 py-0.5 rounded-full border font-bold flex items-center gap-1.5 ${
                         issue.status === "critical" 
-                          ? "bg-rose-500 animate-pulse" 
+                          ? "bg-rose-500/15 border-rose-500/35 text-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.1)]" 
                           : issue.status === "resolved" 
-                            ? "bg-[#C0F53D]" 
-                            : "bg-yellow-500 animate-pulse"
-                      }`} />
-                      <span className="font-mono text-[9px] tracking-wider text-[#FAFFF3]/70 uppercase">
-                        {issue.status}
+                            ? "bg-[#C0F53D]/15 border-[#C0F53D]/35 text-[#C0F53D] shadow-[0_0_8px_rgba(192,245,61,0.1)]" 
+                            : "bg-amber-500/15 border-amber-500/35 text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.1)]"
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          issue.status === "critical" 
+                            ? "bg-rose-500 animate-pulse" 
+                            : issue.status === "resolved" 
+                              ? "bg-[#C0F53D]" 
+                              : "bg-amber-400 animate-pulse"
+                        }`} />
+                        {issue.status === "active" ? "Active" : issue.status}
                       </span>
                     </div>
                   </div>
@@ -145,7 +185,14 @@ export default function CommunityFeed({ issues, onVote, onOpenReport }: Communit
                 <div className="pt-3 border-t border-[#FAFFF3]/5 mt-4 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-[#FAFFF3]/30" />
-                    <span className="font-mono text-[9px] text-[#FAFFF3]/40">{issue.dateReported.split(" ")[0]}</span>
+                    <span className="font-mono text-[9px] text-[#FAFFF3]/40">
+                      {issue.dateReported.split(" ")[0]}
+                      {getRelativeTime(issue.dateReported) && (
+                        <span className="text-[#C0F53D]/80 font-semibold ml-2">
+                          ({getRelativeTime(issue.dateReported)})
+                        </span>
+                      )}
+                    </span>
                   </div>
 
                   <button
