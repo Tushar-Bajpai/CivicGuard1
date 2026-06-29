@@ -17,6 +17,9 @@ export interface CivicIssue {
   brief_description?: string;
   imageUrl?: string;
   reporterId?: string;
+  updatedAt?: string;
+  escalationNote?: string;
+  escalatedAt?: string;
 }
 
 export interface NavigationTab {

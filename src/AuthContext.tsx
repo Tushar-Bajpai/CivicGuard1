@@ -9,7 +9,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
 export interface UserProfile {
@@ -116,6 +116,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => unsubscribe();
   }, []);
+
+  // Listen for realtime profile updates
+  useEffect(() => {
+    if (!db || !currentUser || currentUser.uid === "demo-user-123") return;
+    const unsubscribeProfile = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        setUserProfile(docSnap.data() as UserProfile);
+      }
+    });
+    return () => unsubscribeProfile();
+  }, [currentUser]);
 
   const signInAsDemo = (name: string = "Civic Guard Guest", email: string = "demo@civicguard.org") => {
     setLoading(true);

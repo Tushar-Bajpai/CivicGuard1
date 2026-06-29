@@ -3,16 +3,16 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Map, { Marker, Popup, NavigationControl } from "react-map-gl/maplibre";
 import maplibregl from "maplibre-gl";
-import { 
-  Shield, 
-  MapPin, 
-  ThumbsUp, 
-  Activity, 
-  Plus, 
-  Search, 
-  Filter, 
-  Settings, 
-  Compass, 
+import {
+  Shield,
+  MapPin,
+  ThumbsUp,
+  Activity,
+  Plus,
+  Search,
+  Filter,
+  Settings,
+  Compass,
   ChevronRight,
   Menu,
   X,
@@ -34,8 +34,9 @@ import {
 } from "lucide-react";
 import { CivicIssue, IssueStatus } from "../types";
 import IssueVisualizer from "./IssueVisualizer";
+import AnalyticsDashboard from "./AnalyticsDashboard";
 import { db, handleFirestoreError, OperationType } from "../firebase";
-import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot } from "firebase/firestore";
+import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
 
 // Import MapLibre styles
@@ -48,7 +49,7 @@ interface DashboardLayoutProps {
   onBackToLanding: () => void;
 }
 
-type TabType = "map" | "my_reports" | "community" | "leaderboard" | "settings";
+type TabType = "map" | "my_reports" | "community" | "leaderboard" | "analytics" | "settings";
 
 const MAP_STYLES = [
   { id: "dark", label: "Midnight", url: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json" },
@@ -56,11 +57,11 @@ const MAP_STYLES = [
   { id: "voyager", label: "Detailed", url: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json" }
 ];
 
-export default function DashboardLayout({ 
-  issues, 
-  onVote, 
-  onReportClick, 
-  onBackToLanding 
+export default function DashboardLayout({
+  issues,
+  onVote,
+  onReportClick,
+  onBackToLanding
 }: DashboardLayoutProps) {
   const { currentUser, userProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("map");
@@ -98,22 +99,63 @@ export default function DashboardLayout({
   // States for live counts and verification
   const [affectedCounts, setAffectedCounts] = useState<Record<string, number>>({});
   const [verifiedIssues, setVerifiedIssues] = useState<Record<string, boolean>>({});
-  
+
   // Real-time tracking of issues the active user has verified/voted on
   const [userVotedIssueIds, setUserVotedIssueIds] = useState<Record<string, boolean>>({});
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
+
+  const getBadge = (score: number) => {
+    if (score >= 2000) return "Civic Star";
+    if (score >= 1000) return "Eco Warden";
+    if (score >= 500) return "Road Guardian";
+    if (score >= 100) return "Volunteer";
+    return "Citizen";
+  };
+
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [myRank, setMyRank] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!db) return;
+    const q = query(collection(db, "users"), orderBy("civicScore", "desc"), limit(50));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const users: any[] = [];
+      let rank = 1;
+      let currentUserRank = null;
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (currentUser && docSnap.id === currentUser.uid) {
+          currentUserRank = rank;
+        }
+        users.push({
+          id: docSnap.id,
+          rank: rank++,
+          name: data.name || "Anonymous",
+          reports: data.reportsCount || 0,
+          verifications: data.verifiedCount || 0,
+          score: data.civicScore || 0,
+          badge: getBadge(data.civicScore || 0)
+        });
+      });
+      setLeaderboard(users);
+      setMyRank(currentUserRank);
+    }, (err) => {
+      console.error("Error fetching leaderboard:", err);
+    });
+    return () => unsubscribe();
+  }, [currentUser]);
 
   useEffect(() => {
     if (!db || !currentUser) {
       setUserVotedIssueIds({});
       return;
     }
-    
+
     const q = query(
       collection(db, "verifications"),
       where("voterId", "==", currentUser.uid)
     );
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const voted: Record<string, boolean> = {};
       snapshot.forEach((docSnap) => {
@@ -126,7 +168,7 @@ export default function DashboardLayout({
     }, (err) => {
       console.error("Error listening to verifications:", err);
     });
-    
+
     return () => unsubscribe();
   }, [currentUser]);
 
@@ -187,7 +229,7 @@ export default function DashboardLayout({
   // Filter and Search Issues
   const filteredIssues = issues.filter((issue) => {
     const matchesFilter = filter === "all" || issue.status === filter;
-    const matchesSearch = 
+    const matchesSearch =
       issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       issue.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       issue.locationName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -208,13 +250,13 @@ export default function DashboardLayout({
       const now = new Date();
       const diffMs = now.getTime() - date.getTime();
       if (diffMs < 0) return "just now";
-      
+
       const diffMins = Math.floor(diffMs / (1000 * 60));
       if (diffMins < 60) return `${diffMins}m ago`;
-      
+
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
       if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-      
+
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
     } catch (e) {
@@ -229,7 +271,7 @@ export default function DashboardLayout({
     if (normalized === "in_progress" || normalized === "in progress") return "In Progress";
     if (normalized === "verified") return "Verified";
     if (normalized === "pending") return "Pending";
-    
+
     // Fallback/Legacy matching
     if (status === "critical") return "In Progress";
     if (votes > 50) return "Verified";
@@ -272,6 +314,13 @@ export default function DashboardLayout({
           confirmCount: increment(1),
           updatedAt: new Date().toISOString()
         });
+
+        if (currentUser.uid !== "demo-user-123") {
+          await updateDoc(doc(db, "users", currentUser.uid), {
+            civicScore: increment(5),
+            verifiedCount: increment(1)
+          });
+        }
 
         setLocalFeedback("Attestation registered successfully.");
         setTimeout(() => setLocalFeedback(null), 3000);
@@ -318,6 +367,13 @@ export default function DashboardLayout({
           updatedAt: new Date().toISOString()
         });
 
+        if (currentUser.uid !== "demo-user-123") {
+          await updateDoc(doc(db, "users", currentUser.uid), {
+            civicScore: increment(5),
+            verifiedCount: increment(1)
+          });
+        }
+
         setLocalFeedback("Verification submitted successfully.");
         setTimeout(() => setLocalFeedback(null), 3000);
       } catch (err) {
@@ -328,10 +384,10 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0A0D04] text-[#FAFFF3] relative" id="civic-dashboard-root">
-      
+
       {/* Mobile Header */}
       <div className="md:hidden absolute top-0 left-0 right-0 h-16 bg-[#1A2209] border-b border-[#FAFFF3]/10 px-4 flex items-center justify-between z-40">
-        <button 
+        <button
           onClick={onBackToLanding}
           className="flex items-center gap-1.5 text-xs text-[#FAFFF3]/60 hover:text-[#C0F53D] cursor-pointer"
         >
@@ -345,7 +401,7 @@ export default function DashboardLayout({
           <span className="font-mono text-[9px] bg-[#C0F53D]/10 text-[#C0F53D] px-1.5 py-0.5 rounded border border-[#C0F53D]/20">DASH</span>
         </div>
 
-        <button 
+        <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="p-2 text-[#FAFFF3]/80 hover:text-[#C0F53D] cursor-pointer focus:outline-none"
         >
@@ -354,16 +410,15 @@ export default function DashboardLayout({
       </div>
 
       {/* Left Sidebar Panel */}
-      <aside 
-        className={`fixed md:relative inset-y-0 left-0 w-64 bg-[#1A2209] border-r border-[#FAFFF3]/10 flex flex-col justify-between shrink-0 z-50 transition-transform duration-300 transform md:transform-none ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
+      <aside
+        className={`fixed md:relative inset-y-0 left-0 w-64 bg-[#1A2209] border-r border-[#FAFFF3]/10 flex flex-col justify-between shrink-0 z-50 transition-transform duration-300 transform md:transform-none ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          }`}
         id="dashboard-sidebar"
       >
         <div className="flex flex-col">
           {/* Sidebar Top Branding Header */}
           <div className="h-20 px-6 border-b border-[#FAFFF3]/10 flex items-center justify-between">
-            <button 
+            <button
               onClick={onBackToLanding}
               className="flex items-center gap-2 group cursor-pointer text-left focus:outline-none"
             >
@@ -377,8 +432,8 @@ export default function DashboardLayout({
                 <span className="text-[9px] font-mono tracking-wider text-[#C0F53D]/60 uppercase block mt-0.5">Community Platform</span>
               </div>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden text-[#FAFFF3]/50 hover:text-white"
             >
@@ -389,11 +444,11 @@ export default function DashboardLayout({
           {/* User Status Profile Card */}
           <div className="p-4 mx-4 mt-4 bg-[#0A0D04]/60 border border-[#FAFFF3]/5 rounded-xl flex items-center gap-3">
             {currentUser?.photoURL || userProfile?.photoURL ? (
-              <img 
-                src={currentUser?.photoURL || userProfile?.photoURL || ""} 
-                alt="Profile Avatar" 
+              <img
+                src={currentUser?.photoURL || userProfile?.photoURL || ""}
+                alt="Profile Avatar"
                 referrerPolicy="no-referrer"
-                className="w-8 h-8 rounded-full border border-[#C0F53D]/40 object-cover shrink-0" 
+                className="w-8 h-8 rounded-full border border-[#C0F53D]/40 object-cover shrink-0"
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-[#1A2209] border border-[#C0F53D]/40 flex items-center justify-center text-xs font-bold text-[#C0F53D] shrink-0">
@@ -419,14 +474,13 @@ export default function DashboardLayout({
           {/* Sidebar Navigation Options */}
           <nav className="p-4 space-y-1">
             <span className="text-[10px] font-mono text-[#FAFFF3]/30 uppercase tracking-widest block px-2 mb-2">Navigation</span>
-            
+
             <button
               onClick={() => { setActiveTab("map"); setIsSidebarOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
-                activeTab === "map" 
-                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]" 
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "map"
+                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
-              }`}
+                }`}
             >
               <MapIcon className="w-4 h-4" />
               <span>Live Map</span>
@@ -434,11 +488,10 @@ export default function DashboardLayout({
 
             <button
               onClick={() => { setActiveTab("my_reports"); setIsSidebarOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
-                activeTab === "my_reports" 
-                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]" 
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "my_reports"
+                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
-              }`}
+                }`}
             >
               <User className="w-4 h-4" />
               <span>My Reports</span>
@@ -446,11 +499,10 @@ export default function DashboardLayout({
 
             <button
               onClick={() => { setActiveTab("community"); setIsSidebarOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
-                activeTab === "community" 
-                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]" 
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "community"
+                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
-              }`}
+                }`}
             >
               <Activity className="w-4 h-4" />
               <span>Community Feed</span>
@@ -458,23 +510,32 @@ export default function DashboardLayout({
 
             <button
               onClick={() => { setActiveTab("leaderboard"); setIsSidebarOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
-                activeTab === "leaderboard" 
-                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]" 
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "leaderboard"
+                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
-              }`}
+                }`}
             >
               <Award className="w-4 h-4" />
               <span>Leaderboard</span>
             </button>
 
             <button
-              onClick={() => { setActiveTab("settings"); setIsSidebarOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
-                activeTab === "settings" 
-                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]" 
+              onClick={() => { setActiveTab("analytics"); setIsSidebarOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "analytics"
+                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
-              }`}
+                }`}
+            >
+              <Activity className="w-4 h-4" />
+              <span>Analytics</span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab("settings"); setIsSidebarOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "settings"
+                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+                  : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
+                }`}
             >
               <Settings className="w-4 h-4" />
               <span>Settings</span>
@@ -508,13 +569,13 @@ export default function DashboardLayout({
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 pt-16 md:pt-0 relative z-10" id="dashboard-main">
         <div className="flex-1 relative flex flex-col md:flex-row items-stretch min-h-0">
-          
+
           {/* Main Map Visual Panel (Tab: map) */}
           <div className={`flex-1 relative flex flex-col min-h-0 ${activeTab === "map" ? "flex" : "hidden"}`}>
-            
+
             {/* Overlay Map Headers and Controls */}
             <div className="absolute top-4 left-4 right-4 flex flex-col sm:flex-row gap-3 z-30 pointer-events-none">
-              
+
               {/* Filter pills on map (Interactive) */}
               <div className="pointer-events-auto flex items-center gap-1.5 bg-[#1A2209]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#FAFFF3]/15 shadow-2xl">
                 <Filter className="w-3.5 h-3.5 text-[#C0F53D]" />
@@ -523,11 +584,10 @@ export default function DashboardLayout({
                     <button
                       key={status}
                       onClick={() => setFilter(status)}
-                      className={`px-2.5 py-0.5 rounded-full font-mono text-[9px] tracking-wider uppercase transition-all cursor-pointer ${
-                        filter === status 
-                          ? "bg-[#C0F53D] text-[#0A0D04] font-bold" 
+                      className={`px-2.5 py-0.5 rounded-full font-mono text-[9px] tracking-wider uppercase transition-all cursor-pointer ${filter === status
+                          ? "bg-[#C0F53D] text-[#0A0D04] font-bold"
                           : "text-[#FAFFF3]/60 hover:text-white"
-                      }`}
+                        }`}
                     >
                       {status}
                     </button>
@@ -538,7 +598,7 @@ export default function DashboardLayout({
               {/* Search Bar Input */}
               <div className="pointer-events-auto flex-1 max-w-sm flex items-center gap-2 bg-[#1A2209]/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#FAFFF3]/15 shadow-2xl">
                 <Search className="w-3.5 h-3.5 text-[#C0F53D]/60" />
-                <input 
+                <input
                   type="text"
                   placeholder="Search regions, categories, IDs..."
                   value={searchQuery}
@@ -578,13 +638,13 @@ export default function DashboardLayout({
                       longitude={coords.longitude}
                       anchor="center"
                     >
-                      <button 
+                      <button
                         onClick={() => { setSelectedIssueId(issue.id); setShowMapPopup(true); }}
                         className="relative flex items-center justify-center group cursor-pointer"
                         id={`map-marker-${issue.id}`}
                       >
                         {/* Dynamic Radar Glows */}
-                        <span 
+                        <span
                           className="absolute rounded-full pointer-events-none animate-ping"
                           style={{
                             width: isSelected ? "32px" : "18px",
@@ -593,7 +653,7 @@ export default function DashboardLayout({
                             opacity: isSelected ? 0.45 : 0.25
                           }}
                         />
-                        <span 
+                        <span
                           className="absolute rounded-full pointer-events-none"
                           style={{
                             width: isSelected ? "18px" : "10px",
@@ -604,21 +664,19 @@ export default function DashboardLayout({
                         />
 
                         {/* Interactive marker center pin */}
-                        <div 
-                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 relative ${
-                            isSelected 
-                              ? "scale-110 shadow-[0_0_15px_rgba(192,245,61,0.6)]" 
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 relative ${isSelected
+                              ? "scale-110 shadow-[0_0_15px_rgba(192,245,61,0.6)]"
                               : "hover:scale-105"
-                          }`}
+                            }`}
                           style={{
                             backgroundColor: isSelected ? "#C0F53D" : "#1A2209",
                             border: `1.5px solid ${cat.color}`
                           }}
                         >
-                          <Icon 
-                            className={`w-3.5 h-3.5 ${
-                              isSelected ? "text-[#0A0D04]" : ""
-                            }`}
+                          <Icon
+                            className={`w-3.5 h-3.5 ${isSelected ? "text-[#0A0D04]" : ""
+                              }`}
                             style={{
                               color: isSelected ? undefined : cat.color
                             }}
@@ -630,8 +688,8 @@ export default function DashboardLayout({
                           <div className="flex-1 min-w-0 flex flex-col justify-between">
                             <div>
                               <div className="flex items-center gap-1">
-                                <span 
-                                  className="w-1.5 h-1.5 rounded-full animate-pulse" 
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full animate-pulse"
                                   style={{ backgroundColor: issue.status === "critical" ? "#F43F5E" : issue.status === "resolved" ? "#10B981" : "#EAB308" }}
                                 />
                                 <p className="font-mono text-[7px] text-[#C0F53D] tracking-widest font-bold uppercase">{issue.id}</p>
@@ -639,11 +697,11 @@ export default function DashboardLayout({
                                   {issue.status}
                                 </span>
                               </div>
-                              
+
                               <p className="text-[10px] text-[#FAFFF3] font-bold tracking-tight mt-1 line-clamp-1 leading-snug">{issue.title}</p>
                               <p className="text-[8px] text-[#FAFFF3]/60 font-light mt-0.5 line-clamp-1">{issue.description}</p>
                             </div>
-                            
+
                             <div className="flex items-center gap-1 text-[7px] text-[#FAFFF3]/40 font-mono uppercase mt-1.5">
                               <MapPin className="w-2.5 h-2.5 text-[#C0F53D]/70 shrink-0" />
                               <span className="truncate">{issue.locationName}</span>
@@ -673,7 +731,7 @@ export default function DashboardLayout({
                       anchor="bottom"
                       offset={25}
                     >
-                      <div className="w-64 flex flex-col gap-2 p-1 text-left select-none pointer-events-auto">
+                      <div className="w-[280px] flex flex-col gap-3 p-1 pt-3 pr-2 text-left select-none pointer-events-auto">
                         <div className="flex items-center justify-between">
                           <span className="font-mono text-[9px] font-bold text-[#C0F53D] bg-[#1A2209] px-2 py-0.5 rounded border border-[#C0F53D]/25">
                             {selectedIssue.id}
@@ -728,7 +786,7 @@ export default function DashboardLayout({
 
             {/* Bottom Left Map Style Controller */}
             <div className="absolute bottom-6 left-6 z-20 pointer-events-auto bg-[#1A2209]/90 border border-[#FAFFF3]/10 rounded-2xl p-2 flex flex-col gap-1.5 shadow-xl">
-              <button 
+              <button
                 onClick={() => setIsStyleExpanded(!isStyleExpanded)}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-[#0A0D04]/40 font-mono text-[9px] text-[#C0F53D] font-bold uppercase cursor-pointer"
               >
@@ -752,10 +810,9 @@ export default function DashboardLayout({
           </div>
 
           {/* Right Sidebar Inspection Panel (Active on Tab: map, persistent on desktop) */}
-          <div className={`w-full md:w-96 bg-[#1A2209]/45 backdrop-blur-xl border-l border-[#FAFFF3]/10 flex flex-col justify-between min-h-0 ${
-            activeTab === "map" ? "flex" : "hidden"
-          }`} id="dashboard-inspect-panel">
-            
+          <div className={`w-full md:w-96 bg-[#1A2209]/45 backdrop-blur-xl border-l border-[#FAFFF3]/10 flex flex-col justify-between min-h-0 ${activeTab === "map" ? "flex" : "hidden"
+            }`} id="dashboard-inspect-panel">
+
             <div className="p-6 overflow-y-auto space-y-6 flex-1 text-left">
               <div>
                 <span className="font-mono text-[9px] text-[#C0F53D] tracking-[0.2em] uppercase block font-bold">INSPECTION HUB</span>
@@ -766,7 +823,7 @@ export default function DashboardLayout({
                 const catDetails = getCategoryDetails(selectedIssue.category);
                 const CatIcon = catDetails.icon;
                 const relativeTimeStr = getRelativeTime(selectedIssue.dateReported);
-                
+
                 const stepperStages = ["Pending", "Verified", "In Progress", "Resolved"];
                 const currentStepperStage = getStatusStage(selectedIssue.status, selectedIssue.votes);
                 const currentStepperIdx = stepperStages.indexOf(currentStepperStage);
@@ -781,7 +838,7 @@ export default function DashboardLayout({
                       <span className="font-mono text-xs font-bold text-[#C0F53D] bg-[#0A0D04] px-2.5 py-1 rounded border border-[#C0F53D]/25">
                         {selectedIssue.id}
                       </span>
-                      
+
                       {/* Category Badge */}
                       <span className={`inline-flex items-center gap-1 text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold border ${catDetails.bgColor} ${catDetails.textColor} ${catDetails.borderColor}`}>
                         <CatIcon className="w-3 h-3" />
@@ -789,15 +846,14 @@ export default function DashboardLayout({
                       </span>
 
                       {/* Severity Badge */}
-                      <span className={`inline-flex items-center text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold border ${
-                        selectedIssue.severity === "critical" 
-                          ? "bg-red-500/10 text-red-400 border-red-500/30" 
+                      <span className={`inline-flex items-center text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold border ${selectedIssue.severity === "critical"
+                          ? "bg-red-500/10 text-red-400 border-red-500/30"
                           : selectedIssue.severity === "high"
                             ? "bg-orange-500/10 text-orange-400 border-orange-500/30"
                             : selectedIssue.severity === "medium"
                               ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
                               : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                      }`}>
+                        }`}>
                         {selectedIssue.severity ? `${selectedIssue.severity} Priority` : "Medium Priority"}
                       </span>
                     </div>
@@ -839,34 +895,32 @@ export default function DashboardLayout({
                       <span className="text-[9px] font-mono text-[#FAFFF3]/40 uppercase tracking-widest block font-bold">Verification Timeline</span>
                       <div className="flex items-center justify-between relative px-1">
                         <div className="absolute top-[12px] left-4 right-4 h-[2px] bg-[#FAFFF3]/10 z-0" />
-                        <div 
-                          className="absolute top-[12px] left-4 h-[2px] bg-[#C0F53D] transition-all duration-500 z-0" 
+                        <div
+                          className="absolute top-[12px] left-4 h-[2px] bg-[#C0F53D] transition-all duration-500 z-0"
                           style={{ width: `${(currentStepperIdx / (stepperStages.length - 1)) * 90}%` }}
                         />
-                        
+
                         {stepperStages.map((stage, idx) => {
                           const completed = idx <= currentStepperIdx;
                           const current = idx === currentStepperIdx;
                           return (
                             <div key={stage} className="flex flex-col items-center z-10 relative">
-                              <div 
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold transition-all duration-300 ${
-                                  current 
-                                    ? "bg-[#C0F53D] text-[#0A0D04] border-[#C0F53D] shadow-[0_0_8px_#C0F53D]" 
+                              <div
+                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold transition-all duration-300 ${current
+                                    ? "bg-[#C0F53D] text-[#0A0D04] border-[#C0F53D] shadow-[0_0_8px_#C0F53D]"
                                     : completed
-                                      ? "bg-[#1A2209] text-[#C0F53D] border-[#C0F53D]" 
+                                      ? "bg-[#1A2209] text-[#C0F53D] border-[#C0F53D]"
                                       : "bg-[#0A0D04] text-[#FAFFF3]/30 border-[#FAFFF3]/10"
-                                }`}
+                                  }`}
                               >
                                 {idx + 1}
                               </div>
-                              <span className={`text-[8px] font-mono mt-1 transition-colors ${
-                                current 
-                                  ? "text-[#C0F53D] font-bold" 
-                                  : completed 
-                                    ? "text-[#FAFFF3]/80" 
+                              <span className={`text-[8px] font-mono mt-1 transition-colors ${current
+                                  ? "text-[#C0F53D] font-bold"
+                                  : completed
+                                    ? "text-[#FAFFF3]/80"
                                     : "text-[#FAFFF3]/30"
-                              }`}>
+                                }`}>
                                 {stage}
                               </span>
                             </div>
@@ -884,27 +938,25 @@ export default function DashboardLayout({
 
                     {/* 6. "I'm affected too" button with live count, and a separate "Verify this" button */}
                     <div className="grid grid-cols-2 gap-3 pt-2">
-                      <button 
+                      <button
                         disabled={userVotedIssueIds[selectedIssue.id]}
                         onClick={() => handleAffectedClick(selectedIssue.id)}
-                        className={`flex items-center justify-center gap-1.5 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
-                          userVotedIssueIds[selectedIssue.id]
+                        className={`flex items-center justify-center gap-1.5 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${userVotedIssueIds[selectedIssue.id]
                             ? "bg-[#0A0D04] border border-[#FAFFF3]/5 text-[#FAFFF3]/30 cursor-default"
                             : "bg-[#1A2209] hover:bg-[#1A2209]/80 border border-[#C0F53D]/20 hover:border-[#C0F53D]/40 text-[#C0F53D] cursor-pointer"
-                        }`}
+                          }`}
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
                         <span>Affected ({currentAffectedCount})</span>
                       </button>
 
-                      <button 
+                      <button
                         disabled={isAlreadyVerified}
                         onClick={() => handleVerifyClick(selectedIssue.id)}
-                        className={`flex items-center justify-center gap-1.5 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
-                          isAlreadyVerified 
+                        className={`flex items-center justify-center gap-1.5 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${isAlreadyVerified
                             ? "bg-[#0A0D04] border border-[#FAFFF3]/5 text-[#FAFFF3]/30 cursor-default"
                             : "bg-[#C0F53D] hover:bg-[#C0F53D]/90 text-[#0A0D04] border border-[#C0F53D]/50 cursor-pointer"
-                        }`}
+                          }`}
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
                         <span>{isAlreadyVerified ? "Verified" : "Verify This"}</span>
@@ -966,7 +1018,7 @@ export default function DashboardLayout({
                           <td className="py-3.5 px-2 text-[#FAFFF3]/60">{issue.locationName}</td>
                           <td className="py-3.5 px-2 uppercase font-bold text-[#C0F53D]">{issue.status}</td>
                           <td className="py-3.5 px-2 text-right">
-                            <button 
+                            <button
                               onClick={() => { setSelectedIssueId(issue.id); setActiveTab("map"); }}
                               className="text-[#C0F53D] hover:underline hover:text-white cursor-pointer"
                             >
@@ -996,7 +1048,7 @@ export default function DashboardLayout({
               {filteredIssues.map((issue) => {
                 const cat = getCategoryDetails(issue.category);
                 return (
-                  <div 
+                  <div
                     key={issue.id}
                     onClick={() => { setSelectedIssueId(issue.id); setActiveTab("map"); }}
                     className="bg-[#1A2209]/40 border border-[#FAFFF3]/10 rounded-2xl p-5 hover:border-[#C0F53D]/40 transition-all cursor-pointer flex flex-col justify-between hover:-translate-y-1 relative group"
@@ -1054,27 +1106,21 @@ export default function DashboardLayout({
               <div className="lg:col-span-8 bg-[#1A2209]/20 border border-[#FAFFF3]/10 rounded-2xl p-6">
                 <h4 className="text-lg font-serif text-[#FAFFF3] mb-4">Top Contributors this Month</h4>
                 <div className="space-y-4">
-                  {[
-                    { rank: 1, name: "Arjun Mehta", reports: 24, verifications: 89, score: 2150, badge: "Civic Star" },
-                    { rank: 2, name: "Priya Sharma", reports: 18, verifications: 112, score: 1980, badge: "Eco Warden" },
-                    { rank: 3, name: "Rohan Das", reports: 20, verifications: 67, score: 1720, badge: "Road Guardian" },
-                    { rank: 4, name: "Ananya Iyer", reports: 14, verifications: 54, score: 1450, badge: "Water Guardian" },
-                    { rank: 5, name: "Kabir Singh", reports: 12, verifications: 41, score: 1210, badge: "Volunteer" }
-                  ].map((champion) => (
-                    <div key={champion.rank} className="flex items-center justify-between p-4 bg-[#0A0D04]/60 border border-[#FAFFF3]/5 rounded-xl">
+                  {leaderboard.slice(0, 10).map((champion) => (
+                    <div key={champion.rank} className={`flex items-center justify-between p-4 bg-[#0A0D04]/60 border ${champion.id === currentUser?.uid ? 'border-[#C0F53D]/50 shadow-[0_0_15px_rgba(192,245,61,0.1)]' : 'border-[#FAFFF3]/5'} rounded-xl`}>
                       <div className="flex items-center gap-4">
                         <span className="font-mono text-lg font-bold text-[#C0F53D]">#{champion.rank}</span>
                         <div>
-                          <p className="text-sm font-semibold text-[#FAFFF3]">{champion.name}</p>
+                          <p className="text-sm font-semibold text-[#FAFFF3]">{champion.name} {champion.id === currentUser?.uid && "(You)"}</p>
                           <p className="text-xs text-[#FAFFF3]/40 font-mono">Badge: <span className="text-[#C0F53D]">{champion.badge}</span></p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-8 font-mono text-xs text-right">
-                        <div>
+                      <div className="flex items-center gap-4 md:gap-8 font-mono text-xs text-right">
+                        <div className="hidden sm:block">
                           <p className="text-[#FAFFF3]/40">REPORTS</p>
                           <p className="text-white font-bold">{champion.reports}</p>
                         </div>
-                        <div>
+                        <div className="hidden sm:block">
                           <p className="text-[#FAFFF3]/40">VERIFIED</p>
                           <p className="text-white font-bold">{champion.verifications}</p>
                         </div>
@@ -1085,6 +1131,11 @@ export default function DashboardLayout({
                       </div>
                     </div>
                   ))}
+                  {leaderboard.length === 0 && (
+                    <div className="text-center py-8 text-[#FAFFF3]/40 font-mono text-sm">
+                      No users on the leaderboard yet.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1093,19 +1144,19 @@ export default function DashboardLayout({
                 <div className="p-4 bg-[#0A0D04]/80 rounded-xl space-y-3 font-mono text-xs">
                   <div className="flex justify-between">
                     <span className="text-[#FAFFF3]/40">COMMUNITY RANK</span>
-                    <span className="text-white font-bold">#42</span>
+                    <span className="text-white font-bold">{myRank ? `#${myRank}` : "Unranked"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#FAFFF3]/40">TOTAL REPORTS</span>
-                    <span className="text-white font-bold">3 submitted</span>
+                    <span className="text-white font-bold">{userProfile?.reportsCount || 0} submitted</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#FAFFF3]/40">VERIFICATIONS</span>
-                    <span className="text-white font-bold">14 logged</span>
+                    <span className="text-white font-bold">{userProfile?.verifiedCount || 0} logged</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#FAFFF3]/40">TOTAL SCORE</span>
-                    <span className="text-[#C0F53D] font-bold">280 pts</span>
+                    <span className="text-[#C0F53D] font-bold">{userProfile?.civicScore || 0} pts</span>
                   </div>
                 </div>
 
@@ -1133,7 +1184,7 @@ export default function DashboardLayout({
                   <Bell className="w-4 h-4 text-[#C0F53D]" />
                   <span>Notification Settings</span>
                 </h4>
-                
+
                 <div className="space-y-3 font-mono text-xs">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" defaultChecked className="rounded border-[#FAFFF3]/10 bg-[#0A0D04] text-[#C0F53D] focus:ring-0" />
@@ -1155,7 +1206,7 @@ export default function DashboardLayout({
                   <MapIcon className="w-4 h-4 text-[#C0F53D]" />
                   <span>Regional Preferences</span>
                 </h4>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
                   <div className="space-y-1.5">
                     <span className="text-[#FAFFF3]/40">SEARCH RADIUS</span>
@@ -1180,7 +1231,7 @@ export default function DashboardLayout({
               </div>
 
               <div className="pt-4 border-t border-[#FAFFF3]/10 flex justify-end">
-                <button 
+                <button
                   onClick={() => alert("Preferences saved successfully.")}
                   className="px-5 py-2.5 bg-[#C0F53D] text-[#0A0D04] font-mono font-bold text-xs uppercase rounded-xl border border-[#C0F53D]/40 cursor-pointer hover:bg-[#C0F53D]/95 transition-all"
                 >
@@ -1188,6 +1239,11 @@ export default function DashboardLayout({
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Analytics Dashboard Panel */}
+          <div className={`flex-1 relative flex-col min-h-0 bg-[#0A0D04] ${activeTab === "analytics" ? "flex" : "hidden"}`}>
+            <AnalyticsDashboard issues={issues} />
           </div>
 
         </div>

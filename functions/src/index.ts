@@ -1,7 +1,11 @@
 import { onRequest } from "firebase-functions/v2/https";
-import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { GoogleGenAI } from "@google/genai";
 import fetch from "node-fetch";
+import * as admin from "firebase-admin";
+
+admin.initializeApp();
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || "",
@@ -110,5 +114,158 @@ export const verifyIssueOnConfirm = onDocumentUpdated("issues/{issueId}", async 
       status: "verified",
       updatedAt: new Date().toISOString()
     });
+
+    const reporterId = newValue.reporterId;
+    if (reporterId && reporterId !== "demo-user-123") {
+      console.log(`Awarding +20 bonus civicScore to reporter ${reporterId}`);
+      await admin.firestore().collection("users").doc(reporterId).update({
+        civicScore: admin.firestore.FieldValue.increment(20)
+      });
+    }
+  }
+});
+
+/**
+ * Firestore trigger: When a new issue is created,
+ * award +10 civicScore to the reporter.
+ */
+export const onIssueCreated = onDocumentCreated("issues/{issueId}", async (event) => {
+  const data = event.data?.data();
+  if (!data) return;
+  
+  const reporterId = data.reporterId;
+  if (reporterId && reporterId !== "demo-user-123") {
+    console.log(`Awarding +10 civicScore for new report to ${reporterId}`);
+    try {
+      await admin.firestore().collection("users").doc(reporterId).update({
+        civicScore: admin.firestore.FieldValue.increment(10),
+        reportsCount: admin.firestore.FieldValue.increment(1)
+      });
+    } catch (err) {
+      console.error("Failed to update user score:", err);
+    }
+  }
+});
+
+/**
+ * Firestore trigger: When a verification (vote) is created,
+ * increment the issue's confirmCount and award +5 civicScore to the voter.
+ */
+export const onVerificationCreated = onDocumentCreated("verifications/{docId}", async (event) => {
+  const data = event.data?.data();
+  if (!data) return;
+  
+  const issueId = data.issueId;
+  const voterId = data.voterId;
+
+  if (issueId) {
+    try {
+      await admin.firestore().collection("issues").doc(issueId).update({
+        confirmCount: admin.firestore.FieldValue.increment(1),
+        updatedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error("Failed to update issue confirmCount:", err);
+    }
+  }
+
+  if (voterId && voterId !== "demo-user-123") {
+    console.log(`Awarding +5 civicScore for verification to ${voterId}`);
+    try {
+      await admin.firestore().collection("users").doc(voterId).update({
+        civicScore: admin.firestore.FieldValue.increment(5),
+        verifiedCount: admin.firestore.FieldValue.increment(1)
+      });
+    } catch (err) {
+      console.error("Failed to update voter score:", err);
+    }
+  }
+  }
+});
+
+/**
+ * Core Escalation Logic
+ * Finds verified issues older than 3 days and generates an escalation note via Gemini.
+ */
+async function processEscalations() {
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const cutoffIso = threeDaysAgo.toISOString();
+
+  console.log(`Running Escalation Agent for verified issues updated before ${cutoffIso}`);
+
+  const snapshot = await admin.firestore().collection("issues")
+    .where("status", "==", "verified")
+    .where("updatedAt", "<", cutoffIso)
+    .get();
+
+  if (snapshot.empty) {
+    console.log("No stale verified issues found to escalate.");
+    return { status: "success", escalatedCount: 0 };
+  }
+
+  let escalatedCount = 0;
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    if (data.escalationNote) {
+      continue; // Already escalated
+    }
+
+    const issueContext = `
+      Category: ${data.category || 'Unknown'}
+      Description: ${data.description || 'No description provided'}
+      Votes/Confirmations: ${data.confirmCount || 0}
+      Days Stale: Since ${data.updatedAt}
+    `;
+
+    const prompt = `You are a Municipal Escalation Agent. A civic issue has been verified by the community but has remained unresolved for several days.
+Generate a short, plain-language urgency note (1 sentence max) to escalate this to priority dispatch.
+Example format: "This water leak has been unresolved for 4 days, confirmed by 8 residents — recommend priority dispatch"
+
+Issue details:
+${issueContext}`;
+
+    try {
+      const result = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt
+      });
+
+      const note = (result.text || "").trim().replace(/^"|"$/g, ""); // Strip quotes if any
+
+      if (note) {
+        await doc.ref.update({
+          escalationNote: note,
+          escalatedAt: new Date().toISOString()
+        });
+        escalatedCount++;
+        console.log(`Escalated issue ${doc.id}: ${note}`);
+      }
+    } catch (err) {
+      console.error(`Failed to escalate issue ${doc.id}:`, err);
+    }
+  }
+
+  return { status: "success", escalatedCount };
+}
+
+/**
+ * Scheduled trigger for Escalation Agent (runs daily at midnight).
+ */
+export const scheduledEscalation = onSchedule("every day 00:00", async (event) => {
+  await processEscalations();
+});
+
+/**
+ * HTTP trigger for manual testing of the Escalation Agent.
+ */
+export const manualEscalation = onRequest({ cors: true }, async (req, res) => {
+  try {
+    const result = await processEscalations();
+    res.status(200).send(result);
+  } catch (error: any) {
+    console.error("Manual escalation failed:", error);
+    res.status(500).send({ error: error.message || "Escalation failed" });
   }
 });

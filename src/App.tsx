@@ -20,7 +20,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 function AppContent() {
   const { currentUser, loading } = useAuth();
-  const [issues, setIssues] = useState<CivicIssue[]>(INITIAL_ISSUES);
+  const [issues, setIssues] = useState<CivicIssue[]>([]);
   const [activeSection, setActiveSection] = useState("hero");
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -50,7 +50,10 @@ function AppContent() {
             severity: data.severity || "medium",
             brief_description: data.description || "",
             aiOutput: data.aiOutput || `AI Analysis: Severity is ${data.severity || "normal"}.`,
-            reporterId: data.reporterId || ""
+            reporterId: data.reporterId || "",
+            updatedAt: data.updatedAt ? (typeof data.updatedAt === "string" ? data.updatedAt : (data.updatedAt.toDate ? data.updatedAt.toDate().toISOString() : new Date(data.updatedAt.seconds * 1000).toISOString())) : undefined,
+            escalationNote: data.escalationNote || undefined,
+            escalatedAt: data.escalatedAt || undefined
           });
         });
         // Sort by date reported (newest first)
@@ -64,7 +67,7 @@ function AppContent() {
 
     return () => unsubscribe();
   }, []);
-  
+
   const [currentView, setCurrentView] = useState(() => {
     const path = window.location.pathname;
     const hash = window.location.hash;
@@ -162,7 +165,7 @@ function AppContent() {
       )
     );
     showNotification(`Attestation logged for node ${id}`);
-    
+
     if (db) {
       try {
         const docRef = doc(db, "issues", id);
@@ -183,9 +186,9 @@ function AppContent() {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
@@ -202,7 +205,7 @@ function AppContent() {
     // Generate high fidelity report package ID
     const reportId = `CG-2026-${Math.floor(Math.random() * 900 + 100)}`;
     const dateStr = new Date().toISOString();
-    
+
     const [latStr, lngStr] = newReport.coordinates.split(",");
     const lat = parseFloat(latStr || "19.0760");
     const lng = parseFloat(lngStr || "72.8777");
@@ -275,12 +278,19 @@ function AppContent() {
       return;
     }
 
+    const severityLower = newReport.severity.toLowerCase();
+    const severityWeight =
+      severityLower === "critical" ? 1.0 :
+        severityLower === "high" ? 0.75 :
+          severityLower === "medium" ? 0.5 : 0.25;
+    const computedPriorityScore = Math.round((severityWeight * 0.6 + (1 / 10) * 0.4) * 100);
+
     // Standard AI output representation
     const aiOutputObj = {
       category: newReport.category,
       confidence: 0.98,
-      severity: newReport.severity.toLowerCase(),
-      priority_score: `${Math.floor(Math.random() * 15 + 85)}/100`,
+      severity: severityLower,
+      priority_score: `${computedPriorityScore}/100`,
       metrics: {
         depth_cm: Math.random() > 0.5 ? 12.8 : undefined,
         saturation: Math.random() > 0.5 ? 0.91 : undefined,
@@ -292,7 +302,7 @@ function AppContent() {
     const firestoreData = {
       reporterId: currentUser ? currentUser.uid : "user_01",
       category: newReport.category,
-      severity: newReport.severity.toLowerCase(),
+      severity: severityLower,
       status: "pending",
       title: newReport.title,
       description: newReport.description,
@@ -303,7 +313,7 @@ function AppContent() {
         name: newReport.locationName
       },
       confirmCount: 1,
-      priorityScore: Math.floor(Math.random() * 15 + 85),
+      priorityScore: computedPriorityScore,
       createdAt: dateStr,
       updatedAt: dateStr,
       aiOutput: JSON.stringify(aiOutputObj, null, 2)
@@ -312,6 +322,12 @@ function AppContent() {
     if (db) {
       try {
         await setDoc(doc(db, "issues", reportId), firestoreData);
+        if (currentUser && currentUser.uid !== "demo-user-123") {
+          await updateDoc(doc(db, "users", currentUser.uid), {
+            civicScore: increment(10),
+            reportsCount: increment(1)
+          });
+        }
         showNotification(`Successfully routed ${reportId} to Municipal Dispatch`);
       } catch (err) {
         handleFirestoreError(err, OperationType.CREATE, `issues/${reportId}`);
@@ -361,7 +377,7 @@ function AppContent() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4 }}
             >
-              <DashboardLayout 
+              <DashboardLayout
                 issues={issues}
                 onVote={handleVote}
                 onReportClick={() => setIsReportOpen(true)}
@@ -378,7 +394,7 @@ function AppContent() {
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <AuthPage 
+            <AuthPage
               onBackToLanding={navigateToLanding}
               onSuccess={navigateToDashboard}
             />
@@ -392,8 +408,8 @@ function AppContent() {
             transition={{ duration: 0.4 }}
           >
             {/* Floating Pill Navigation */}
-            <Navigation 
-              onReportClick={navigateToDashboard} 
+            <Navigation
+              onReportClick={navigateToDashboard}
               activeSection={activeSection}
               onNavigate={(id) => {
                 if (id === "map") {
@@ -409,8 +425,8 @@ function AppContent() {
             />
 
             {/* Hero Header Presentation */}
-            <Hero 
-              onReportClick={navigateToDashboard} 
+            <Hero
+              onReportClick={navigateToDashboard}
               onViewMapClick={navigateToDashboard}
             />
 
@@ -421,7 +437,7 @@ function AppContent() {
             <LiveMap issues={issues} onVote={handleVote} />
 
             {/* Community Transmission Ledger */}
-            <CommunityFeed 
+            <CommunityFeed
               issues={issues}
               onVote={handleVote}
               onOpenReport={navigateToDashboard}
@@ -449,7 +465,7 @@ function AppContent() {
       {/* Interactive Report Wizard Modal */}
       <AnimatePresence>
         {isReportOpen && (
-          <ReportIssueModal 
+          <ReportIssueModal
             isOpen={isReportOpen}
             onClose={() => setIsReportOpen(false)}
             onSubmitReport={handleNewReportSubmit}

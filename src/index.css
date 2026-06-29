@@ -54,6 +54,9 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9) !important;
   font-family: var(--font-sans);
   padding: 12px 14px !important;
+  max-width: none !important;
+  width: max-content !important;
+  min-width: 280px !important;
 }
 
 .maplibregl-popup-tip {
