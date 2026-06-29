@@ -13,9 +13,10 @@ export default function Navigation({ onReportClick, activeSection, onNavigate }:
 
   const navItems = [
     { id: "hero", label: "Overview" },
-    { id: "map", label: "Live Map" },
-    { id: "community", label: "Community" },
-    { id: "impact", label: "Impact" }
+    { id: "features", label: "Features" },
+    { id: "process", label: "How It Works" },
+    { id: "vision", label: "Our Vision" },
+    { id: "map", label: "Live Map" }
   ];
 
   const handleNavClick = (id: string) => {
