@@ -16,6 +16,7 @@ export interface CivicIssue {
   severity?: string;
   brief_description?: string;
   imageUrl?: string;
+  reporterId?: string;
 }
 
 export interface NavigationTab {

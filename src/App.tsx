@@ -12,10 +12,14 @@ import Footer from "./components/Footer";
 import DashboardLayout from "./components/DashboardLayout";
 import { AnimatePresence, motion } from "motion/react";
 import { ShieldAlert, Check } from "lucide-react";
-import { db } from "./firebase";
-import { collection, onSnapshot, doc, setDoc, updateDoc, increment } from "firebase/firestore";
+import { db, handleFirestoreError, OperationType } from "./firebase";
+import { collection, onSnapshot, doc, setDoc, updateDoc, increment, query, where, getDocs } from "firebase/firestore";
+import { AuthProvider, useAuth } from "./AuthContext";
+import AuthPage from "./components/AuthPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-export default function App() {
+function AppContent() {
+  const { currentUser, loading } = useAuth();
   const [issues, setIssues] = useState<CivicIssue[]>(INITIAL_ISSUES);
   const [activeSection, setActiveSection] = useState("hero");
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -45,7 +49,8 @@ export default function App() {
             imageUrl: data.imageUrl || "",
             severity: data.severity || "medium",
             brief_description: data.description || "",
-            aiOutput: data.aiOutput || `AI Analysis: Severity is ${data.severity || "normal"}.`
+            aiOutput: data.aiOutput || `AI Analysis: Severity is ${data.severity || "normal"}.`,
+            reporterId: data.reporterId || ""
           });
         });
         // Sort by date reported (newest first)
@@ -53,7 +58,7 @@ export default function App() {
         setIssues(items);
       },
       (error) => {
-        console.error("Error loading issues from Firestore in App.tsx:", error);
+        handleFirestoreError(error, OperationType.LIST, "issues");
       }
     );
 
@@ -61,16 +66,26 @@ export default function App() {
   }, []);
   
   const [currentView, setCurrentView] = useState(() => {
-    return window.location.pathname === "/dashboard" || window.location.hash === "#dashboard" 
-      ? "dashboard" 
-      : "landing";
+    const path = window.location.pathname;
+    const hash = window.location.hash;
+    if (path === "/dashboard" || hash === "#dashboard") {
+      return "dashboard";
+    }
+    if (path === "/login" || hash === "#login") {
+      return "login";
+    }
+    return "landing";
   });
 
   // Monitor URL history state changes
   useEffect(() => {
     const handleLocationChange = () => {
-      if (window.location.pathname === "/dashboard" || window.location.hash === "#dashboard") {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      if (path === "/dashboard" || hash === "#dashboard") {
         setCurrentView("dashboard");
+      } else if (path === "/login" || hash === "#login") {
+        setCurrentView("login");
       } else {
         setCurrentView("landing");
       }
@@ -92,6 +107,18 @@ export default function App() {
     window.history.pushState({}, "", "/");
     setCurrentView("landing");
   };
+
+  const navigateToLogin = () => {
+    window.history.pushState({}, "", "/login");
+    setCurrentView("login");
+  };
+
+  // Redirect logged-in users away from the login page
+  useEffect(() => {
+    if (!loading && currentUser && currentView === "login") {
+      navigateToDashboard();
+    }
+  }, [currentUser, loading, currentView]);
 
   // Monitor scrolling to highlight active Navigation pill (only on landing page)
   useEffect(() => {
@@ -118,6 +145,16 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [currentView]);
 
+  if (loading) {
+    return (
+      <div className="relative min-h-screen bg-[#0A0D04] text-[#FAFFF3] flex flex-col items-center justify-center font-mono text-xs selection:bg-[#C0F53D] selection:text-[#0A0D04]">
+        <div className="absolute inset-0 pointer-events-none opacity-40 tactical-grid z-0" />
+        <div className="w-10 h-10 rounded-full border-t-2 border-r-2 border-[#C0F53D] animate-spin mb-4" />
+        <span className="animate-pulse tracking-widest text-[#C0F53D]">SYNCHRONIZING CIVICGUARD NODE...</span>
+      </div>
+    );
+  }
+
   const handleVote = async (id: string) => {
     setIssues((prevIssues) =>
       prevIssues.map((issue) =>
@@ -134,9 +171,23 @@ export default function App() {
           updatedAt: new Date().toISOString()
         });
       } catch (err) {
-        console.error("Error upvoting in Firestore:", err);
+        handleFirestoreError(err, OperationType.UPDATE, `issues/${id}`);
       }
     }
+  };
+
+  const getHaversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371000; // Radius of Earth in meters
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   };
 
   const handleNewReportSubmit = async (newReport: {
@@ -156,6 +207,74 @@ export default function App() {
     const lat = parseFloat(latStr || "19.0760");
     const lng = parseFloat(lngStr || "72.8777");
 
+    // 1. Perform Duplicate Check before Firestore write
+    let duplicateId: string | null = null;
+
+    if (db) {
+      try {
+        const q = query(
+          collection(db, "issues"),
+          where("category", "==", newReport.category)
+        );
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((docSnap) => {
+          if (duplicateId) return;
+          const data = docSnap.data();
+          if (data.status === "rejected") return;
+          const loc = data.location;
+          if (loc && typeof loc.lat === "number" && typeof loc.lng === "number") {
+            const dist = getHaversineDistance(lat, lng, loc.lat, loc.lng);
+            if (dist <= 50) {
+              duplicateId = docSnap.id;
+            }
+          }
+        });
+      } catch (err) {
+        console.warn("Firestore duplicate check query failed, using in-memory:", err);
+      }
+    }
+
+    // Double check with in-memory state or use as offline fallback
+    if (!duplicateId) {
+      const matched = issues.find((issue) => {
+        if (issue.status === "rejected") return false;
+        if (issue.category !== newReport.category) return false;
+        const [issueLatStr, issueLngStr] = issue.coordinates.split(",");
+        const issueLat = parseFloat(issueLatStr);
+        const issueLng = parseFloat(issueLngStr);
+        if (!isNaN(issueLat) && !isNaN(issueLng)) {
+          const dist = getHaversineDistance(lat, lng, issueLat, issueLng);
+          return dist <= 50;
+        }
+        return false;
+      });
+      if (matched) {
+        duplicateId = matched.id;
+      }
+    }
+
+    // If duplicate found, increment vote count instead of creating a new report
+    if (duplicateId) {
+      setIssues((prevIssues) =>
+        prevIssues.map((issue) =>
+          issue.id === duplicateId ? { ...issue, votes: (issue.votes || 0) + 1 } : issue
+        )
+      );
+      showNotification("This was already reported nearby. We've added your confirmation instead of creating a duplicate.");
+
+      if (db) {
+        try {
+          await updateDoc(doc(db, "issues", duplicateId), {
+            confirmCount: increment(1),
+            updatedAt: dateStr
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `issues/${duplicateId}`);
+        }
+      }
+      return;
+    }
+
     // Standard AI output representation
     const aiOutputObj = {
       category: newReport.category,
@@ -171,13 +290,13 @@ export default function App() {
     };
 
     const firestoreData = {
-      reporterId: "user_01",
+      reporterId: currentUser ? currentUser.uid : "user_01",
       category: newReport.category,
       severity: newReport.severity.toLowerCase(),
       status: "pending",
       title: newReport.title,
       description: newReport.description,
-      imageUrl: newReport.image.startsWith("http") ? newReport.image : "",
+      imageUrl: (newReport.image.startsWith("http") || newReport.image.startsWith("data:")) ? newReport.image : "",
       location: {
         lat: lat,
         lng: lng,
@@ -195,25 +314,7 @@ export default function App() {
         await setDoc(doc(db, "issues", reportId), firestoreData);
         showNotification(`Successfully routed ${reportId} to Municipal Dispatch`);
       } catch (err) {
-        console.error("Error creating issue in Firestore:", err);
-        // Fallback local update if Firestore fails
-        const fallbackReport: CivicIssue = {
-          id: reportId,
-          category: newReport.category,
-          title: newReport.title,
-          description: newReport.description,
-          confidence: 0.98,
-          coordinates: newReport.coordinates,
-          status: "pending",
-          votes: 1,
-          locationName: newReport.locationName,
-          dateReported: dateStr,
-          image: newReport.image,
-          severity: newReport.severity.toLowerCase(),
-          aiOutput: JSON.stringify(aiOutputObj, null, 2)
-        };
-        setIssues((prev) => [fallbackReport, ...prev]);
-        showNotification(`Successfully routed ${reportId} to Municipal Dispatch (Offline Mode)`);
+        handleFirestoreError(err, OperationType.CREATE, `issues/${reportId}`);
       }
     } else {
       // Fallback local update if DB is not initialized
@@ -230,7 +331,8 @@ export default function App() {
         dateReported: dateStr,
         image: newReport.image,
         severity: newReport.severity.toLowerCase(),
-        aiOutput: JSON.stringify(aiOutputObj, null, 2)
+        aiOutput: JSON.stringify(aiOutputObj, null, 2),
+        reporterId: currentUser ? currentUser.uid : "user_01"
       };
       setIssues((prev) => [fallbackReport, ...prev]);
       showNotification(`Successfully routed ${reportId} to Municipal Dispatch`);
@@ -251,18 +353,34 @@ export default function App() {
 
       <AnimatePresence mode="wait">
         {currentView === "dashboard" ? (
+          <ProtectedRoute onRedirectToLogin={navigateToLogin}>
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <DashboardLayout 
+                issues={issues}
+                onVote={handleVote}
+                onReportClick={() => setIsReportOpen(true)}
+                onBackToLanding={navigateToLanding}
+              />
+            </motion.div>
+          </ProtectedRoute>
+        ) : currentView === "login" ? (
           <motion.div
-            key="dashboard"
+            key="login"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
+            className="w-full"
           >
-            <DashboardLayout 
-              issues={issues}
-              onVote={handleVote}
-              onReportClick={() => setIsReportOpen(true)}
+            <AuthPage 
               onBackToLanding={navigateToLanding}
+              onSuccess={navigateToDashboard}
             />
           </motion.div>
         ) : (
@@ -351,5 +469,13 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

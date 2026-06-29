@@ -4,7 +4,7 @@ import { INITIAL_ISSUES } from "../data";
 import { CivicIssue, IssueStatus } from "../types";
 import IssueVisualizer from "./IssueVisualizer";
 import { MapPin, ArrowRight, ShieldAlert, CheckCircle2, AlertCircle, Info, ThumbsUp, Layers, Compass } from "lucide-react";
-import { db } from "../firebase";
+import { db, handleFirestoreError, OperationType } from "../firebase";
 import { collection, onSnapshot, doc, updateDoc, increment } from "firebase/firestore";
 
 interface LiveMapProps {
@@ -91,9 +91,9 @@ export default function LiveMap({ issues, onVote }: LiveMapProps) {
         setLoading(false);
       },
       (error) => {
-        console.error("Error loading issues from Firestore:", error);
         setLiveIssues(issues.filter((issue) => !dummyIds.includes(issue.id)));
         setLoading(false);
+        handleFirestoreError(error, OperationType.LIST, "issues");
       }
     );
 
@@ -132,7 +132,7 @@ export default function LiveMap({ issues, onVote }: LiveMapProps) {
           confirmCount: increment(1)
         });
       } catch (err) {
-        console.error("Error upvoting in Firestore:", err);
+        handleFirestoreError(err, OperationType.UPDATE, `issues/${id}`);
       }
     }
   };

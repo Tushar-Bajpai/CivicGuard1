@@ -33,7 +33,7 @@ const app = isConfigured
   : null;
 
 export const auth = app ? getAuth(app) : null;
-export const db = app ? getFirestore(app) : null;
+export const db = app ? (env.VITE_FIREBASE_DATABASE_ID ? getFirestore(app, env.VITE_FIREBASE_DATABASE_ID) : getFirestore(app)) : null;
 export const storage = app ? getStorage(app) : null;
 
 // Error enum and interface per skill guidelines

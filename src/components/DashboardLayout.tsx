@@ -1,5 +1,5 @@
 /// <reference path="../types-map.d.ts" />
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Map, { Marker, Popup, NavigationControl } from "react-map-gl/maplibre";
 import maplibregl from "maplibre-gl";
@@ -29,12 +29,14 @@ import {
   User,
   Bell,
   Map as MapIcon,
-  Check
+  Check,
+  LogOut
 } from "lucide-react";
 import { CivicIssue, IssueStatus } from "../types";
 import IssueVisualizer from "./IssueVisualizer";
-import { db } from "../firebase";
-import { doc, updateDoc, increment } from "firebase/firestore";
+import { db, handleFirestoreError, OperationType } from "../firebase";
+import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot } from "firebase/firestore";
+import { useAuth } from "../AuthContext";
 
 // Import MapLibre styles
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -60,7 +62,31 @@ export default function DashboardLayout({
   onReportClick, 
   onBackToLanding 
 }: DashboardLayoutProps) {
+  const { currentUser, userProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("map");
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      onBackToLanding();
+    } catch (err) {
+      console.error("Error logging out:", err);
+    }
+  };
+
+  const getInitials = (name?: string, email?: string) => {
+    if (name && name.trim()) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return parts[0][0].toUpperCase();
+    }
+    if (email && email.trim()) {
+      return email.trim().substring(0, 2).toUpperCase();
+    }
+    return "CG";
+  };
   const [filter, setFilter] = useState<"all" | "critical" | "active" | "resolved">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(issues[0]?.id || null);
@@ -72,6 +98,37 @@ export default function DashboardLayout({
   // States for live counts and verification
   const [affectedCounts, setAffectedCounts] = useState<Record<string, number>>({});
   const [verifiedIssues, setVerifiedIssues] = useState<Record<string, boolean>>({});
+  
+  // Real-time tracking of issues the active user has verified/voted on
+  const [userVotedIssueIds, setUserVotedIssueIds] = useState<Record<string, boolean>>({});
+  const [localFeedback, setLocalFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!db || !currentUser) {
+      setUserVotedIssueIds({});
+      return;
+    }
+    
+    const q = query(
+      collection(db, "verifications"),
+      where("voterId", "==", currentUser.uid)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const voted: Record<string, boolean> = {};
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.issueId) {
+          voted[data.issueId] = true;
+        }
+      });
+      setUserVotedIssueIds(voted);
+    }, (err) => {
+      console.error("Error listening to verifications:", err);
+    });
+    
+    return () => unsubscribe();
+  }, [currentUser]);
 
   // Viewport State (Centered on India for a beautiful nationwide view)
   const [viewState, setViewState] = useState({
@@ -180,37 +237,91 @@ export default function DashboardLayout({
   };
 
   const handleAffectedClick = async (id: string) => {
-    setAffectedCounts(prev => ({
-      ...prev,
-      [id]: (prev[id] || 0) + 1
-    }));
+    if (!currentUser) {
+      setLocalFeedback("Please log in to confirm you are affected.");
+      setTimeout(() => setLocalFeedback(null), 4000);
+      return;
+    }
+
+    if (userVotedIssueIds[id]) {
+      setLocalFeedback("Already verified or voted on this issue.");
+      setTimeout(() => setLocalFeedback(null), 4000);
+      return;
+    }
+
     if (db) {
       try {
+        // Prevent double clicks via immediate optimistic local state
+        setUserVotedIssueIds(prev => ({ ...prev, [id]: true }));
+        setAffectedCounts(prev => ({
+          ...prev,
+          [id]: (prev[id] || 0) + 1
+        }));
+
+        // Write verification doc
+        await addDoc(collection(db, "verifications"), {
+          issueId: id,
+          voterId: currentUser.uid,
+          voteType: "affected",
+          createdAt: new Date().toISOString()
+        });
+
+        // Increment issue confirmCount
         const docRef = doc(db, "issues", id);
         await updateDoc(docRef, {
           confirmCount: increment(1),
           updatedAt: new Date().toISOString()
         });
+
+        setLocalFeedback("Attestation registered successfully.");
+        setTimeout(() => setLocalFeedback(null), 3000);
       } catch (err) {
-        console.error("Error updating confirmCount in Firestore:", err);
+        handleFirestoreError(err, OperationType.CREATE, `verifications`);
       }
     }
   };
 
   const handleVerifyClick = async (id: string) => {
-    setVerifiedIssues(prev => ({
-      ...prev,
-      [id]: true
-    }));
+    if (!currentUser) {
+      setLocalFeedback("Please log in to verify this issue.");
+      setTimeout(() => setLocalFeedback(null), 4000);
+      return;
+    }
+
+    if (userVotedIssueIds[id]) {
+      setLocalFeedback("Already verified or voted on this issue.");
+      setTimeout(() => setLocalFeedback(null), 4000);
+      return;
+    }
+
     if (db) {
       try {
+        // Prevent double clicks via immediate optimistic local state
+        setUserVotedIssueIds(prev => ({ ...prev, [id]: true }));
+        setVerifiedIssues(prev => ({
+          ...prev,
+          [id]: true
+        }));
+
+        // Write verification doc
+        await addDoc(collection(db, "verifications"), {
+          issueId: id,
+          voterId: currentUser.uid,
+          voteType: "verify",
+          createdAt: new Date().toISOString()
+        });
+
+        // Increment issue confirmCount (Cloud Function handles status promotion to verified when reaches 3)
         const docRef = doc(db, "issues", id);
         await updateDoc(docRef, {
-          status: "verified",
+          confirmCount: increment(1),
           updatedAt: new Date().toISOString()
         });
+
+        setLocalFeedback("Verification submitted successfully.");
+        setTimeout(() => setLocalFeedback(null), 3000);
       } catch (err) {
-        console.error("Error updating status in Firestore:", err);
+        handleFirestoreError(err, OperationType.CREATE, `verifications`);
       }
     }
   };
@@ -277,15 +388,31 @@ export default function DashboardLayout({
 
           {/* User Status Profile Card */}
           <div className="p-4 mx-4 mt-4 bg-[#0A0D04]/60 border border-[#FAFFF3]/5 rounded-xl flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#1A2209] border border-[#C0F53D]/40 flex items-center justify-center text-xs font-bold text-[#C0F53D]">
-              SB
-            </div>
+            {currentUser?.photoURL || userProfile?.photoURL ? (
+              <img 
+                src={currentUser?.photoURL || userProfile?.photoURL || ""} 
+                alt="Profile Avatar" 
+                referrerPolicy="no-referrer"
+                className="w-8 h-8 rounded-full border border-[#C0F53D]/40 object-cover shrink-0" 
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#1A2209] border border-[#C0F53D]/40 flex items-center justify-center text-xs font-bold text-[#C0F53D] shrink-0">
+                {getInitials(userProfile?.name, userProfile?.email || currentUser?.email)}
+              </div>
+            )}
             <div className="overflow-hidden">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-[#C0F53D] font-mono tracking-wider">MEMBER</span>
+                <span className="text-[10px] font-bold text-[#C0F53D] font-mono tracking-wider">
+                  {userProfile?.civicScore !== undefined ? `SCORE: ${userProfile.civicScore}` : "MEMBER"}
+                </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-[#C0F53D] animate-ping" />
               </div>
-              <p className="text-xs text-[#FAFFF3]/80 truncate font-mono mt-0.5">smitabajpai6@gmail.com</p>
+              <p className="text-xs text-[#FAFFF3] truncate font-semibold leading-none mt-1">
+                {userProfile?.name || currentUser?.displayName || "Civic Citizen"}
+              </p>
+              <p className="text-[9px] text-[#FAFFF3]/60 truncate font-mono mt-1">
+                {userProfile?.email || currentUser?.email || "offline_node"}
+              </p>
             </div>
           </div>
 
@@ -352,6 +479,16 @@ export default function DashboardLayout({
               <Settings className="w-4 h-4" />
               <span>Settings</span>
             </button>
+
+            <div className="pt-2 border-t border-[#FAFFF3]/5 mt-2">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all text-red-400/80 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out Node</span>
+              </button>
+            </div>
           </nav>
         </div>
 
@@ -634,8 +771,8 @@ export default function DashboardLayout({
                 const currentStepperStage = getStatusStage(selectedIssue.status, selectedIssue.votes);
                 const currentStepperIdx = stepperStages.indexOf(currentStepperStage);
 
-                const currentAffectedCount = selectedIssue.votes + (affectedCounts[selectedIssue.id] || 0);
-                const isAlreadyVerified = verifiedIssues[selectedIssue.id] || selectedIssue.status === "resolved";
+                const currentAffectedCount = selectedIssue.votes;
+                const isAlreadyVerified = userVotedIssueIds[selectedIssue.id] || selectedIssue.status === "verified" || selectedIssue.status === "resolved";
 
                 return (
                   <div className="space-y-6">
@@ -738,11 +875,23 @@ export default function DashboardLayout({
                       </div>
                     </div>
 
+                    {/* Local Feedback Toast if active */}
+                    {localFeedback && (
+                      <div className="bg-[#1A2209] border border-[#C0F53D]/30 rounded-xl p-3 text-center text-[10px] font-mono text-[#C0F53D] uppercase tracking-wider animate-pulse">
+                        {localFeedback}
+                      </div>
+                    )}
+
                     {/* 6. "I'm affected too" button with live count, and a separate "Verify this" button */}
                     <div className="grid grid-cols-2 gap-3 pt-2">
                       <button 
+                        disabled={userVotedIssueIds[selectedIssue.id]}
                         onClick={() => handleAffectedClick(selectedIssue.id)}
-                        className="flex items-center justify-center gap-1.5 py-3 rounded-xl bg-[#1A2209] hover:bg-[#1A2209]/80 border border-[#C0F53D]/20 hover:border-[#C0F53D]/40 text-[#C0F53D] font-mono text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all"
+                        className={`flex items-center justify-center gap-1.5 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
+                          userVotedIssueIds[selectedIssue.id]
+                            ? "bg-[#0A0D04] border border-[#FAFFF3]/5 text-[#FAFFF3]/30 cursor-default"
+                            : "bg-[#1A2209] hover:bg-[#1A2209]/80 border border-[#C0F53D]/20 hover:border-[#C0F53D]/40 text-[#C0F53D] cursor-pointer"
+                        }`}
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
                         <span>Affected ({currentAffectedCount})</span>
@@ -751,10 +900,10 @@ export default function DashboardLayout({
                       <button 
                         disabled={isAlreadyVerified}
                         onClick={() => handleVerifyClick(selectedIssue.id)}
-                        className={`flex items-center justify-center gap-1.5 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all ${
+                        className={`flex items-center justify-center gap-1.5 py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-all ${
                           isAlreadyVerified 
                             ? "bg-[#0A0D04] border border-[#FAFFF3]/5 text-[#FAFFF3]/30 cursor-default"
-                            : "bg-[#C0F53D] hover:bg-[#C0F53D]/90 text-[#0A0D04] border border-[#C0F53D]/50"
+                            : "bg-[#C0F53D] hover:bg-[#C0F53D]/90 text-[#0A0D04] border border-[#C0F53D]/50 cursor-pointer"
                         }`}
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
@@ -803,7 +952,7 @@ export default function DashboardLayout({
                     </tr>
                   </thead>
                   <tbody>
-                    {issues.filter(i => i.id.startsWith("CG-2026-001") || i.id.startsWith("CG-2026-003") || i.id.startsWith("CG-2026-012")).map((issue) => {
+                    {issues.filter(i => i.reporterId === currentUser?.uid || i.id === "CG-2026-001" || i.id === "CG-2026-003" || i.id === "CG-2026-012").map((issue) => {
                       const cat = getCategoryDetails(issue.category);
                       return (
                         <tr key={issue.id} className="border-b border-[#FAFFF3]/5 hover:bg-[#0A0D04]/30 transition-all">
