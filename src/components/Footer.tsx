@@ -6,7 +6,7 @@ interface FooterProps {
 }
 
 export default function Footer({ onNavigate }: FooterProps) {
-  
+
   const handleScrollTop = () => {
     onNavigate("hero");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -17,15 +17,15 @@ export default function Footer({ onNavigate }: FooterProps) {
   return (
     <footer className="bg-[#1A2209] border-t border-[#FAFFF3]/10 pt-20 pb-8 px-6 md:px-12 relative overflow-hidden" id="footer-section">
       <div className="absolute right-[5%] top-[10%] w-[300px] h-[300px] rounded-full bg-[#C0F53D]/5 blur-[70px] pointer-events-none" />
-      
+
       <div className="max-w-7xl mx-auto w-full z-10 relative">
-        
+
         {/* Main Footer Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          
+
           {/* Logo Column (Takes 2 cols on lg) */}
           <div className="lg:col-span-2 space-y-6">
-            <button 
+            <button
               onClick={handleScrollTop}
               className="flex items-center gap-2.5 text-left cursor-pointer group"
               id="footer-logo"
@@ -42,7 +42,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             </p>
             {/* Social handles */}
             <div className="flex items-center gap-4 text-[#FAFFF3]/50 font-mono text-[9px]">
-              <a href="#github" className="hover:text-[#C0F53D] transition-colors duration-200" id="link-github"><Github className="w-4 h-4" /></a>
+              <a href="#github" className="hover:text-[#C0F53D] transition-colors duration-200" id="link-github"><Github className="w-4 h-4" />https://github.com/Tushar-Bajpai/CivicGuard1</a>
               <span className="tracking-wider uppercase ml-2 bg-[#0A0D04] px-2.5 py-0.5 rounded border border-[#FAFFF3]/5 text-[#C0F53D]">
                 COMMUNITY NETWORK
               </span>
@@ -81,7 +81,7 @@ export default function Footer({ onNavigate }: FooterProps) {
           <div className="font-mono text-[10px] text-[#FAFFF3]/40 tracking-wider text-center md:text-left">
             © {currentYear} CIVICGUARD INC. ALL RIGHTS RESERVED.
           </div>
-          
+
           <button
             onClick={handleScrollTop}
             className="group px-4 py-2 rounded-full bg-[#0A0D04] border border-[#FAFFF3]/10 hover:border-[#C0F53D]/30 flex items-center gap-2 font-mono text-[10px] text-[#FAFFF3]/70 hover:text-[#C0F53D] transition-all duration-300 cursor-pointer"
