@@ -40,7 +40,7 @@ export default function FeaturesGrid() {
       icon: <Award className="w-6 h-6" />
     },
     {
-      title: "Image & Video Reporting",
+      title: "Image Reporting",
       description: "Easily upload media right from your phone so responders know exactly what they're dealing with.",
       icon: <Camera className="w-6 h-6" />
     }
@@ -62,7 +62,7 @@ export default function FeaturesGrid() {
           </h2>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
@@ -73,7 +73,7 @@ export default function FeaturesGrid() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
           {features.map((feature, idx) => (
-            <motion.div 
+            <motion.div
               key={idx}
               variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
               className="p-6 bg-[#1A2209]/40 border border-[#FAFFF3]/10 hover:border-[#C0F53D]/40 rounded-2xl transition-colors duration-300 group"
