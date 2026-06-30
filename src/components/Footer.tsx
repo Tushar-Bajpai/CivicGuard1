@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, ArrowUp, Github, Twitter, Globe, Cpu } from "lucide-react";
+import { Shield, ArrowUp, Github } from "lucide-react";
 
 interface FooterProps {
   onNavigate: (sectionId: string) => void;
@@ -42,9 +42,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             </p>
             {/* Social handles */}
             <div className="flex items-center gap-4 text-[#FAFFF3]/50 font-mono text-[9px]">
-              <a href="#twitter" className="hover:text-[#C0F53D] transition-colors duration-200" id="link-twitter"><Twitter className="w-4 h-4" /></a>
               <a href="#github" className="hover:text-[#C0F53D] transition-colors duration-200" id="link-github"><Github className="w-4 h-4" /></a>
-              <a href="#web" className="hover:text-[#C0F53D] transition-colors duration-200" id="link-web"><Globe className="w-4 h-4" /></a>
               <span className="tracking-wider uppercase ml-2 bg-[#0A0D04] px-2.5 py-0.5 rounded border border-[#FAFFF3]/5 text-[#C0F53D]">
                 COMMUNITY NETWORK
               </span>
@@ -59,8 +57,8 @@ export default function Footer({ onNavigate }: FooterProps) {
             <ul className="space-y-2.5 font-sans text-sm text-[#FAFFF3]/70 font-light">
               <li><button onClick={() => onNavigate("map")} className="hover:text-[#C0F53D] cursor-pointer text-left transition-colors">Live Telemetry Map</button></li>
               <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">AI Processing Core</a></li>
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Municipal API Webhooks</a></li>
-              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Zero-Leakage Reporting</a></li>
+              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Smart Department Routing</a></li>
+              <li><a href="#pothole" className="hover:text-[#C0F53D] transition-colors">Duplicate Detection</a></li>
             </ul>
           </div>
 

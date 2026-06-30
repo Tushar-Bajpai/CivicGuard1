@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowRight, Cpu, Eye, ShieldAlert, Sparkles, Terminal } from "lucide-react";
+import { ArrowRight, Cpu, Eye, ShieldAlert, Sparkles, Terminal, CheckCircle2 } from "lucide-react";
 import IssueVisualizer from "./IssueVisualizer";
 
 interface HeroProps {
@@ -9,29 +9,30 @@ interface HeroProps {
 }
 
 export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
-  // Let user switch the active scan type in the interactive HUD widget
-  const [activeScan, setActiveScan] = useState<"pothole" | "water_leak" | "electrical">("pothole");
+  const [animationStep, setAnimationStep] = useState<0 | 1 | 2>(0);
+  const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
 
   const scanOptions = [
-    { id: "pothole", label: "ROAD_DAMAGE", code: "SEC-RD-04", conf: "0.98" },
-    { id: "water_leak", label: "WATER_LEAK", code: "SEC-H2O-92", conf: "0.95" },
-    { id: "electrical", label: "GRID_HAZARD", code: "SEC-GRID-02", conf: "0.99" }
+    { id: "pothole", label: "ROAD_DAMAGE", code: "SEC-RD-04", conf: "0.98", dept: "Transportation & Road Repair" },
+    { id: "water_leak", label: "WATER_LEAK", code: "SEC-H2O-92", conf: "0.95", dept: "Water & Sanitation Dept" },
+    { id: "electrical", label: "GRID_HAZARD", code: "SEC-GRID-02", conf: "0.99", dept: "Grid & Electrification Board" }
   ] as const;
 
-  // Auto rotate scans every 6 seconds unless hovered
-  const [isHovered, setIsHovered] = useState(false);
+  const activeExample = scanOptions[currentExampleIndex];
+  const activeScan = activeExample.id;
 
   useEffect(() => {
-    if (isHovered) return;
-    const interval = setInterval(() => {
-      setActiveScan((current) => {
-        if (current === "pothole") return "water_leak";
-        if (current === "water_leak") return "electrical";
-        return "pothole";
+    const timer = setInterval(() => {
+      setAnimationStep((prev) => {
+        if (prev === 2) {
+          setCurrentExampleIndex((curr) => (curr + 1) % 3);
+          return 0;
+        }
+        return (prev + 1) as 0 | 1 | 2;
       });
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [isHovered]);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, []);
 
   const activeJson = {
     pothole: `{
@@ -154,8 +155,6 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
         {/* Right Side: Rotating topographical-style concentric circles anchor + overlay tactical AI Vision widget */}
         <div 
           className="lg:col-span-5 relative flex items-center justify-center min-h-[420px] lg:min-h-[500px]"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
         >
           {/* Rotating Data Wheel / Topographical Map Background Graphic */}
           <div className="absolute w-[320px] h-[320px] md:w-[420px] md:h-[420px] rounded-full flex items-center justify-center" id="rotating-anchor-container">
@@ -191,67 +190,94 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
             id="frosted-ai-widget"
           >
             {/* Top Widget Bar */}
-            <div className="flex items-center justify-between border-b border-[#FAFFF3]/10 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#C0F53D] animate-pulse" />
-                <span className="font-mono text-[10px] tracking-widest text-[#FAFFF3]/60 uppercase">
-                  AI_VISION_PROCESSED
-                </span>
-              </div>
+            <div className="flex items-center justify-between border-b border-[#FAFFF3]/10 pb-3 mb-4 h-8">
+              <AnimatePresence mode="wait">
+                {animationStep === 0 && (
+                  <motion.div key="analyzing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="font-mono text-[10px] tracking-widest text-[#FAFFF3]/60 uppercase">AI_VISION_PROCESSING...</span>
+                  </motion.div>
+                )}
+                {animationStep === 1 && (
+                  <motion.div key="processed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#C0F53D]" />
+                    <span className="font-mono text-[10px] tracking-widest text-[#FAFFF3]/60 uppercase">AI_VISION_PROCESSED</span>
+                  </motion.div>
+                )}
+                {animationStep === 2 && (
+                  <motion.div key="routed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#C0F53D]" />
+                    <span className="font-mono text-[10px] tracking-widest text-[#FAFFF3]/60 uppercase">DISPATCH_AUTHORIZED</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <div className="flex items-center gap-1.5 bg-[#0A0D04] px-2 py-0.5 rounded border border-[#FAFFF3]/5 font-mono text-[9px] text-[#C0F53D]">
                 <Terminal className="w-3 h-3" />
                 <span>INTELLIGENCE_NODE</span>
               </div>
             </div>
 
-            {/* Simulated Live Scan image display */}
-            <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-[#0A0D04] border border-[#FAFFF3]/5 mb-4">
+            {/* Main Content Area */}
+            <div className="relative min-h-[300px] flex flex-col justify-start">
               <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeScan}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.4 }}
-                  className="w-full h-full"
-                >
-                  <IssueVisualizer type={activeScan} animate={true} />
-                </motion.div>
+                
+                {/* STATE 0: Analyzing */}
+                {animationStep === 0 && (
+                  <motion.div key="step-0" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.4 }} className="w-full flex flex-col gap-4">
+                    <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-[#0A0D04] border border-[#FAFFF3]/5">
+                      <IssueVisualizer type={activeScan} animate={true} />
+                      {/* Scanning Line Overlay */}
+                      <motion.div animate={{ top: ["-10%", "110%", "-10%"] }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }} className="absolute left-0 right-0 h-1 bg-[#C0F53D] shadow-[0_0_15px_#C0F53D] z-20 opacity-70" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2" id="scan-selectors">
+                      {scanOptions.map((opt, i) => (
+                        <div key={opt.id} className={`py-1.5 px-1 rounded border font-mono text-[8px] md:text-[9px] tracking-wide text-center ${currentExampleIndex === i ? "bg-[#C0F53D] text-[#0A0D04] border-[#C0F53D] font-bold shadow-[0_0_10px_rgba(192,245,61,0.2)]" : "bg-[#0A0D04]/60 text-[#FAFFF3]/50 border-[#FAFFF3]/10"}`}>
+                          {opt.label}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* STATE 1: Categorized */}
+                {animationStep === 1 && (
+                  <motion.div key="step-1" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.4 }} className="w-full flex flex-col gap-4">
+                    <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-[#0A0D04] border border-[#FAFFF3]/5 transform scale-95 origin-top transition-transform">
+                      <IssueVisualizer type={activeScan} animate={true} />
+                    </div>
+                    <div className="bg-[#0A0D04]/90 rounded-lg p-3 border border-[#FAFFF3]/10 relative min-h-[140px]">
+                      <div className="absolute top-2 right-3 font-mono text-[8px] text-[#FAFFF3]/30">JSON FORMAT</div>
+                      <motion.pre initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }} className="font-mono text-[10px] md:text-[11px] text-[#FAFFF3]/90 leading-tight overflow-x-auto max-h-[140px] whitespace-pre select-none">
+                        {activeJson.split('\n').map((line, i) => (
+                          <motion.div key={i} variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }}>
+                            <code className="text-[#C0F53D]">{line}</code>
+                          </motion.div>
+                        ))}
+                      </motion.pre>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* STATE 2: Routed */}
+                {animationStep === 2 && (
+                  <motion.div key="step-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.4 }} className="w-full h-full min-h-[300px] flex flex-col items-center justify-center text-center gap-6">
+                    <motion.div initial={{ scale: 0, rotate: -45 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", damping: 15 }} className="w-20 h-20 rounded-full bg-[#C0F53D]/20 border border-[#C0F53D] flex items-center justify-center">
+                      <CheckCircle2 className="w-10 h-10 text-[#C0F53D]" />
+                    </motion.div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="font-serif text-2xl text-[#FAFFF3]">Issue Routed</h3>
+                      <p className="font-mono text-sm text-[#C0F53D] uppercase tracking-wider">{activeExample.dept}</p>
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+                      <ShieldAlert className="w-4 h-4 text-emerald-400" />
+                      <span className="font-mono text-xs text-emerald-400">Status: Verified by community</span>
+                    </div>
+                  </motion.div>
+                )}
+
               </AnimatePresence>
-            </div>
-
-            {/* Interactive Tab switches inside the HUD */}
-            <div className="grid grid-cols-3 gap-2 mb-4" id="scan-selectors">
-              {scanOptions.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => setActiveScan(opt.id)}
-                  className={`py-1.5 px-1 rounded border font-mono text-[8px] md:text-[9px] tracking-wide transition-all duration-200 cursor-pointer text-center ${
-                    activeScan === opt.id
-                      ? "bg-[#C0F53D] text-[#0A0D04] border-[#C0F53D] font-bold shadow-[0_0_10px_rgba(192,245,61,0.2)]"
-                      : "bg-[#0A0D04]/60 text-[#FAFFF3]/50 border-[#FAFFF3]/10 hover:text-[#FAFFF3] hover:border-[#FAFFF3]/30"
-                  }`}
-                  id={`btn-hud-scan-${opt.id}`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Simulated Bounding Box and JSON Analysis block */}
-            <div className="bg-[#0A0D04]/90 rounded-lg p-3 border border-[#FAFFF3]/10 relative">
-              <div className="absolute top-2 right-3 font-mono text-[8px] text-[#FAFFF3]/30">JSON FORMAT</div>
-              <pre className="font-mono text-[10px] md:text-[11px] text-[#FAFFF3]/90 leading-tight overflow-x-auto max-h-[140px] whitespace-pre select-none">
-                <code className="text-[#C0F53D]">{activeJson}</code>
-              </pre>
-            </div>
-
-            {/* Dynamic priority tag */}
-            <div className="mt-3 flex items-center justify-between text-xs font-mono pt-2 border-t border-[#FAFFF3]/5">
-              <span className="text-[#FAFFF3]/50">PRIORITY ROUTING:</span>
-              <span className="text-[#C0F53D] font-bold">
-                {activeScan === "electrical" ? "98/100 (HIGH_VOLTAGE)" : activeScan === "pothole" ? "94/100 (ROAD_DECAY)" : "81/100 (WATER_SEEPAGE)"}
-              </span>
             </div>
           </motion.div>
         </div>
