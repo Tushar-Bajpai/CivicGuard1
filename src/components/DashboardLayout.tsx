@@ -36,6 +36,7 @@ import { CivicIssue, IssueStatus } from "../types";
 import IssueVisualizer from "./IssueVisualizer";
 import AnalyticsDashboard from "./AnalyticsDashboard";
 import DepartmentView from "./DepartmentView";
+import ProfileView from "./ProfileView";
 import { db, handleFirestoreError, OperationType } from "../firebase";
 import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
@@ -98,6 +99,7 @@ export default function DashboardLayout({
   const [showMapPopup, setShowMapPopup] = useState(true);
   const [currentMapStyle, setCurrentMapStyle] = useState(MAP_STYLES[0].url);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [isStyleExpanded, setIsStyleExpanded] = useState(false);
 
   // States for live counts and verification
@@ -1135,7 +1137,11 @@ export default function DashboardLayout({
                 <h4 className="text-lg font-serif text-[#FAFFF3] mb-4">Top Contributors this Month</h4>
                 <div className="space-y-4">
                   {leaderboard.slice(0, 10).map((champion) => (
-                    <div key={champion.rank} className={`flex items-center justify-between p-4 bg-[#0A0D04]/60 border ${champion.id === currentUser?.uid ? 'border-[#C0F53D]/50 shadow-[0_0_15px_rgba(192,245,61,0.1)]' : 'border-[#FAFFF3]/5'} rounded-xl`}>
+                    <div 
+                      key={champion.rank} 
+                      onClick={() => setSelectedProfileId(champion.id)}
+                      className={`flex items-center justify-between p-4 bg-[#0A0D04]/60 border ${champion.id === currentUser?.uid ? 'border-[#C0F53D]/50 shadow-[0_0_15px_rgba(192,245,61,0.1)]' : 'border-[#FAFFF3]/5 hover:border-[#FAFFF3]/20'} rounded-xl cursor-pointer hover:bg-[#0A0D04]/90 transition-all`}
+                    >
                       <div className="flex items-center gap-4">
                         <span className="font-mono text-lg font-bold text-[#C0F53D]">#{champion.rank}</span>
                         <div>
@@ -1281,6 +1287,30 @@ export default function DashboardLayout({
 
         </div>
       </main>
+
+      {/* Profile View Overlay Modal / Side Panel */}
+      {selectedProfileId && (
+        <>
+          <div 
+            className="absolute inset-0 bg-[#0A0D04]/50 backdrop-blur-sm z-40 transition-opacity"
+            onClick={() => setSelectedProfileId(null)}
+          ></div>
+          <ProfileView 
+            profileId={selectedProfileId} 
+            issues={issues}
+            onClose={() => setSelectedProfileId(null)}
+            onIssueClick={(issue) => {
+              setSelectedIssue(issue);
+              setSelectedProfileId(null);
+              // Ensure we are in a tab that supports the map/panel overlay smoothly, e.g., map or community
+              if (activeTab === "leaderboard" || activeTab === "settings" || activeTab === "department" || activeTab === "analytics") {
+                setActiveTab("map");
+              }
+            }}
+          />
+        </>
+      )}
+
     </div>
   );
 }
