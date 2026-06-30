@@ -241,7 +241,17 @@ export default function DashboardLayout({
 
   // Filter and Search Issues
   const filteredIssues = issues.filter((issue) => {
-    const matchesFilter = filter === "all" || issue.status === filter;
+    let matchesFilter = false;
+    if (filter === "all") {
+      matchesFilter = true;
+    } else if (filter === "resolved") {
+      matchesFilter = issue.status === "resolved";
+    } else if (filter === "active") {
+      matchesFilter = ["pending", "verified", "in_progress"].includes(issue.status);
+    } else if (filter === "critical") {
+      matchesFilter = issue.severity?.toLowerCase() === "critical" || issue.severity?.toLowerCase() === "high";
+    }
+
     const matchesSearch =
       issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       issue.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
