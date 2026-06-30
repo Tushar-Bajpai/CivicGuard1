@@ -1239,7 +1239,7 @@ export default function DashboardLayout({
             issues={issues}
             onClose={() => setSelectedProfileId(null)}
             onIssueClick={(issue) => {
-              setSelectedIssue(issue);
+              setSelectedIssueId(issue.id);
               setSelectedProfileId(null);
               // Ensure we are in a tab that supports the map/panel overlay smoothly, e.g., map or community
               if (activeTab === "leaderboard" || activeTab === "department" || activeTab === "analytics" || activeTab === "my_profile") {
