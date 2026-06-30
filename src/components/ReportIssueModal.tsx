@@ -55,6 +55,9 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
   const [customCategory, setCustomCategory] = useState("");
   const [severity, setSeverity] = useState<"Moderate" | "High" | "Critical">("High");
   
+  // Dev Only Offset Toggle
+  const [applyGpsOffset, setApplyGpsOffset] = useState<boolean>(false);
+  
   // Geolocation states
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         
-        const formattedCoords = `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? "E" : "W"}`;
+        const formattedCoords = `${lat.toFixed(6)},${lng.toFixed(6)}`;
         
         setCoordinates(formattedCoords);
         setIsFetchingLocation(false);
@@ -98,7 +101,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         // Auto-simulate coordinates inside India so user is not blocked
         const lat = 20.5937 + (Math.random() - 0.5) * 6.0;
         const lng = 78.9629 + (Math.random() - 0.5) * 6.0;
-        const formattedCoords = `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? "E" : "W"}`;
+        const formattedCoords = `${lat.toFixed(6)},${lng.toFixed(6)}`;
         
         setCoordinates(formattedCoords);
         setLocationError(errorMsg);
@@ -316,6 +319,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
       setUploadedImageFile(null);
       setImagePreviewUrl(null);
       setImageUrl("");
+
       setLocationSuccess(false);
       setLocationError(null);
       setIsSubmitting(false);
@@ -328,7 +332,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
   const handleSimulateLocation = () => {
     const lat = 20.5937 + (Math.random() - 0.5) * 6.0;
     const lng = 78.9629 + (Math.random() - 0.5) * 6.0;
-    const formatted = `${Math.abs(lat).toFixed(4)}° N, ${Math.abs(lng).toFixed(4)}° E`;
+    const formatted = `${lat.toFixed(6)},${lng.toFixed(6)}`;
     setCoordinates(formatted);
     setLocationSuccess(true);
     setLocationError(null);
@@ -365,6 +369,21 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
       mappedCategoryCode = customCategory.trim() ? customCategory.toLowerCase() : "other";
     }
 
+    let finalCoords = coordinates;
+    if (applyGpsOffset && finalCoords) {
+      const [latStr, lngStr] = finalCoords.split(",");
+      let finalLat = parseFloat(latStr);
+      let finalLng = parseFloat(lngStr);
+      if (!isNaN(finalLat) && !isNaN(finalLng)) {
+        // 0.001 to 0.003 degrees is roughly 100m to 300m offset
+        const latOffset = (Math.random() * 0.002 + 0.001) * (Math.random() > 0.5 ? 1 : -1);
+        const lngOffset = (Math.random() * 0.002 + 0.001) * (Math.random() > 0.5 ? 1 : -1);
+        finalLat += latOffset;
+        finalLng += lngOffset;
+        finalCoords = `${finalLat.toFixed(5)},${finalLng.toFixed(5)}`;
+      }
+    }
+
     const finalImageString = imageUrl || imagePreviewUrl || mappedCategoryCode;
     const reportId = `CG-2026-${Math.floor(Math.random() * 90000 + 10000)}`;
     setSubmittedId(reportId);
@@ -374,7 +393,7 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
         category: mappedCategoryCode,
         title: title.trim(),
         description: description.trim() || `Reported ${selectedCategory.toLowerCase()} issue affecting the local neighborhood.`,
-        coordinates: coordinates || "20.5937° N, 78.9629° E",
+        coordinates: finalCoords || "20.5937,78.9629",
         locationName: locationName.trim() || "India Central Region",
         severity: severity.toUpperCase(),
         image: finalImageString
@@ -707,6 +726,21 @@ export default function ReportIssueModal({ isOpen, onClose, onSubmitReport }: Re
                       <span>{locationError}</span>
                     </div>
                   )}
+
+                  {/* Dev-Only GPS Offset Toggle */}
+                  <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-2.5 mt-2 flex items-start gap-2.5">
+                    <input 
+                      type="checkbox" 
+                      id="devGpsToggle" 
+                      checked={applyGpsOffset} 
+                      onChange={(e) => setApplyGpsOffset(e.target.checked)}
+                      className="accent-rose-500 mt-0.5 cursor-pointer"
+                    />
+                    <label htmlFor="devGpsToggle" className="text-[10px] font-mono text-rose-300 cursor-pointer leading-tight block">
+                      <span className="font-bold border border-rose-500/40 bg-rose-500/20 px-1 py-0.5 rounded mr-1.5">[DEV]</span>
+                      Apply random GPS offset (100-300m) to simulate nearby distinct incident
+                    </label>
+                  </div>
 
                   {/* Observations / Description */}
                   <div className="space-y-1">

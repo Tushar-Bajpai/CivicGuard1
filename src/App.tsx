@@ -219,6 +219,12 @@ function AppContent() {
     const lat = parseFloat(latStr || "19.0760");
     const lng = parseFloat(lngStr || "72.8777");
 
+    const isWithin30Days = (dateStr?: string) => {
+      if (!dateStr) return true;
+      const daysOld = (Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24);
+      return daysOld <= 30;
+    };
+
     // 1. Perform Duplicate Check before Firestore write
     let duplicateId: string | null = null;
 
@@ -232,11 +238,13 @@ function AppContent() {
         querySnapshot.forEach((docSnap) => {
           if (duplicateId) return;
           const data = docSnap.data();
-          if (data.status === "rejected") return;
+          if (data.status === "rejected" || data.status === "resolved" || data.status === "in_progress") return;
+          if (!isWithin30Days(data.createdAt)) return;
+          
           const loc = data.location;
           if (loc && typeof loc.lat === "number" && typeof loc.lng === "number") {
             const dist = getHaversineDistance(lat, lng, loc.lat, loc.lng);
-            if (dist <= 50) {
+            if (dist <= 15) {
               duplicateId = docSnap.id;
             }
           }
@@ -249,14 +257,16 @@ function AppContent() {
     // Double check with in-memory state or use as offline fallback
     if (!duplicateId) {
       const matched = issues.find((issue) => {
-        if (issue.status === "rejected") return false;
+        if (issue.status === "rejected" || issue.status === "resolved" || issue.status === "in_progress") return false;
         if (issue.category !== newReport.category) return false;
+        if (!isWithin30Days(issue.createdAt)) return false;
+        
         const [issueLatStr, issueLngStr] = issue.coordinates.split(",");
         const issueLat = parseFloat(issueLatStr);
         const issueLng = parseFloat(issueLngStr);
         if (!isNaN(issueLat) && !isNaN(issueLng)) {
           const dist = getHaversineDistance(lat, lng, issueLat, issueLng);
-          return dist <= 50;
+          return dist <= 15;
         }
         return false;
       });
