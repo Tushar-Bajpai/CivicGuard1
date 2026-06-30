@@ -37,6 +37,7 @@ import IssueVisualizer from "./IssueVisualizer";
 import AnalyticsDashboard from "./AnalyticsDashboard";
 import DepartmentView from "./DepartmentView";
 import ProfileView from "./ProfileView";
+import MyProfile from "./MyProfile";
 import { db, handleFirestoreError, OperationType } from "../firebase";
 import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
@@ -54,7 +55,7 @@ interface DashboardLayoutProps {
   onBackToLanding: () => void;
 }
 
-type TabType = "map" | "my_reports" | "community" | "leaderboard" | "analytics" | "department" | "settings";
+type TabType = "map" | "my_reports" | "community" | "leaderboard" | "analytics" | "department" | "my_profile";
 
 const MAP_STYLES = [
   { id: "dark", label: "Midnight", url: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json" },
@@ -548,14 +549,14 @@ export default function DashboardLayout({
             </button>
 
             <button
-              onClick={() => { setActiveTab("settings"); setIsSidebarOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "settings"
+              onClick={() => { setActiveTab("my_profile"); setIsSidebarOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "my_profile"
                   ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
                 }`}
             >
-              <Settings className="w-4 h-4" />
-              <span>Settings</span>
+              <User className="w-4 h-4" />
+              <span>My Profile</span>
             </button>
 
             <div className="pt-2 border-t border-[#FAFFF3]/5 mt-2">
@@ -1202,77 +1203,9 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          {/* Tab View: settings */}
-          <div className={`flex-1 overflow-y-auto p-6 md:p-8 space-y-6 text-left ${activeTab === "settings" ? "block" : "hidden"}`}>
-            <div>
-              <span className="font-mono text-xs text-[#C0F53D] tracking-[0.2em] uppercase block font-bold">SYSTEM PREFERENCES</span>
-              <h3 className="font-serif text-3xl text-[#FAFFF3] mt-1">Settings</h3>
-              <p className="text-sm text-[#FAFFF3]/60 font-light mt-2 max-w-xl">
-                Configure your civic profile notifications, location preferences, and regional feed parameters.
-              </p>
-            </div>
-
-            <div className="max-w-2xl bg-[#1A2209]/20 border border-[#FAFFF3]/10 rounded-2xl p-6 space-y-6">
-              <div className="space-y-4">
-                <h4 className="text-base font-semibold text-white flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-[#C0F53D]" />
-                  <span>Notification Settings</span>
-                </h4>
-
-                <div className="space-y-3 font-mono text-xs">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-[#FAFFF3]/10 bg-[#0A0D04] text-[#C0F53D] focus:ring-0" />
-                    <span className="text-[#FAFFF3]/80">Send email digests of active nearby reports</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-[#FAFFF3]/10 bg-[#0A0D04] text-[#C0F53D] focus:ring-0" />
-                    <span className="text-[#FAFFF3]/80">Alert me when issues I marked as Affected are Resolved</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" className="rounded border-[#FAFFF3]/10 bg-[#0A0D04] text-[#C0F53D] focus:ring-0" />
-                    <span className="text-[#FAFFF3]/80">Receive alerts for severe weather and environmental hazards</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-4 border-t border-[#FAFFF3]/10">
-                <h4 className="text-base font-semibold text-white flex items-center gap-2">
-                  <MapIcon className="w-4 h-4 text-[#C0F53D]" />
-                  <span>Regional Preferences</span>
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-                  <div className="space-y-1.5">
-                    <span className="text-[#FAFFF3]/40">SEARCH RADIUS</span>
-                    <select className="w-full bg-[#0A0D04] border border-[#FAFFF3]/10 rounded-xl px-3 py-2 text-white">
-                      <option>Within 5 km</option>
-                      <option>Within 15 km</option>
-                      <option>Within 50 km</option>
-                      <option>National (All India)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <span className="text-[#FAFFF3]/40">PRIMARY LANGUAGE</span>
-                    <select className="w-full bg-[#0A0D04] border border-[#FAFFF3]/10 rounded-xl px-3 py-2 text-white">
-                      <option>English</option>
-                      <option>Hindi (हिन्दी)</option>
-                      <option>Bengali (বাংলা)</option>
-                      <option>Tamil (தமிழ்)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-[#FAFFF3]/10 flex justify-end">
-                <button
-                  onClick={() => alert("Preferences saved successfully.")}
-                  className="px-5 py-2.5 bg-[#C0F53D] text-[#0A0D04] font-mono font-bold text-xs uppercase rounded-xl border border-[#C0F53D]/40 cursor-pointer hover:bg-[#C0F53D]/95 transition-all"
-                >
-                  Save Settings
-                </button>
-              </div>
-            </div>
+          {/* Tab View: my_profile */}
+          <div className={`flex-1 relative flex-col min-h-0 bg-[#0A0D04] ${activeTab === "my_profile" ? "flex" : "hidden"}`}>
+            {activeTab === "my_profile" && <MyProfile />}
           </div>
 
           {/* Analytics Dashboard Panel */}
@@ -1303,7 +1236,7 @@ export default function DashboardLayout({
               setSelectedIssue(issue);
               setSelectedProfileId(null);
               // Ensure we are in a tab that supports the map/panel overlay smoothly, e.g., map or community
-              if (activeTab === "leaderboard" || activeTab === "settings" || activeTab === "department" || activeTab === "analytics") {
+              if (activeTab === "leaderboard" || activeTab === "department" || activeTab === "analytics" || activeTab === "my_profile") {
                 setActiveTab("map");
               }
             }}
