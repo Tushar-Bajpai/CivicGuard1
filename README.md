@@ -20,7 +20,7 @@
 
 ## Problem Statement
 
-*(Add your problem statement here. E.g., The inefficiency of traditional civic reporting methods leaves critical public infrastructure issues unaddressed...)*
+Communities frequently face issues such as potholes, water leakages, damaged streetlights, waste management concerns, and public infrastructure challenges. Reporting these issues is often fragmented, difficult to track, and lacks transparency.
 
 ## Solution Overview
 
