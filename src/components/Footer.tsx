@@ -42,7 +42,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             </p>
             {/* Social handles */}
             <div className="flex items-center gap-4 text-[#FAFFF3]/50 font-mono text-[9px]">
-              <a href="#github" className="hover:text-[#C0F53D] transition-colors duration-200" id="link-github"><Github className="w-4 h-4" />https://github.com/Tushar-Bajpai/CivicGuard1</a>
+              <a href="https://github.com/Tushar-Bajpai/CivicGuard1" target="_blank" rel="noopener noreferrer" className="hover:text-[#C0F53D] transition-colors duration-200 flex items-center gap-2" id="link-github"><Github className="w-4 h-4" /><span>https://github.com/Tushar-Bajpai/CivicGuard1</span></a>
               <span className="tracking-wider uppercase ml-2 bg-[#0A0D04] px-2.5 py-0.5 rounded border border-[#FAFFF3]/5 text-[#C0F53D]">
                 COMMUNITY NETWORK
               </span>
