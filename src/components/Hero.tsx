@@ -98,14 +98,27 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
 
           {/* Headline */}
           <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-            className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#FAFFF3] leading-[1.1] tracking-tight"
+            className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#FAFFF3] leading-[1.1] tracking-tight flex flex-wrap gap-x-3 gap-y-2"
+            variants={{
+              hidden: { opacity: 1 },
+              visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
+            }}
+            initial="hidden"
+            animate="visible"
             id="hero-title"
           >
-            A <span className="italic font-normal text-[#C0F53D]">smarter</span> way <br />
-            to report civic issues.
+            {"A smarter way to report civic issues.".split(" ").map((word, i) => (
+              <motion.span 
+                key={i} 
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+                }}
+                className={word === "smarter" ? "italic font-normal text-[#C0F53D]" : ""}
+              >
+                {word}
+              </motion.span>
+            ))}
           </motion.h1>
 
           {/* Body Text */}
@@ -186,9 +199,17 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
             initial={{ opacity: 0, y: 40, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 1, delay: 0.4 }}
-            className="relative w-full max-w-[420px] bg-[#1A2209]/80 backdrop-blur-xl border border-[#FAFFF3]/15 rounded-2xl p-4 md:p-5 shadow-3xl overflow-hidden"
+            className="relative w-full max-w-[420px] rounded-2xl p-[1px] shadow-3xl overflow-hidden"
             id="frosted-ai-widget"
           >
+            {/* Rotating Gradient Border Layer */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+              className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1A2209_0%,#C0F53D_50%,#1A2209_100%)] opacity-30"
+            />
+            {/* Inner Card Content */}
+            <div className="relative h-full w-full bg-[#1A2209]/90 backdrop-blur-xl border border-[#FAFFF3]/10 rounded-[15px] p-4 md:p-5 overflow-hidden z-10">
             {/* Top Widget Bar */}
             <div className="flex items-center justify-between border-b border-[#FAFFF3]/10 pb-3 mb-4 h-8">
               <AnimatePresence mode="wait">
@@ -278,6 +299,7 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
                 )}
 
               </AnimatePresence>
+            </div>
             </div>
           </motion.div>
         </div>
