@@ -13,8 +13,10 @@ import GamificationTeaser from "./components/GamificationTeaser";
 import OurVision from "./components/OurVision";
 import FinalCTA from "./components/FinalCTA";
 import ReportIssueModal from "./components/ReportIssueModal";
+import LandingPage from "./components/LandingPage";
 import Footer from "./components/Footer";
 import DashboardLayout from "./components/DashboardLayout";
+import ScoreToast from "./components/ScoreToast";
 import { AnimatePresence, motion } from "motion/react";
 import { ShieldAlert, Check } from "lucide-react";
 import { db, handleFirestoreError, OperationType } from "./firebase";
@@ -496,6 +498,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <ScoreToast />
     </AuthProvider>
   );
 }

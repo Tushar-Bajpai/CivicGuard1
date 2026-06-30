@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { 
   User, 
   onAuthStateChanged, 
@@ -34,6 +34,7 @@ interface AuthContextType {
   signInAsDemo: (name?: string, email?: string) => void;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  scoreToastEvent: { diff: number; id: number } | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,6 +43,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [scoreToastEvent, setScoreToastEvent] = useState<{ diff: number; id: number } | null>(null);
+  const prevScoreRef = useRef<number | null>(null);
 
   const fetchOrCreateUserProfile = async (firebaseUser: User, nameFromSignup?: string) => {
     if (!db) {
@@ -122,7 +125,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!db || !currentUser || currentUser.uid === "demo-user-123") return;
     const unsubscribeProfile = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
       if (docSnap.exists()) {
-        setUserProfile(docSnap.data() as UserProfile);
+        const data = docSnap.data() as UserProfile;
+        
+        // Detect civicScore increase for toast notification
+        if (prevScoreRef.current !== null && data.civicScore > prevScoreRef.current) {
+          const diff = data.civicScore - prevScoreRef.current;
+          setScoreToastEvent({ diff, id: Date.now() });
+        }
+        
+        // Update ref and state
+        prevScoreRef.current = data.civicScore;
+        setUserProfile(data);
       }
     });
     return () => unsubscribeProfile();
@@ -153,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCurrentUser(mockUser);
     setUserProfile(demoProfile);
+    prevScoreRef.current = demoProfile.civicScore;
     localStorage.setItem("civicguard_demo_user", JSON.stringify({ mockUser, demoProfile }));
     setLoading(false);
   };
@@ -270,7 +284,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, userProfile, loading, signUpWithEmail, signInWithEmail, signInWithGoogle, signInAsDemo, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ currentUser, userProfile, loading, signUpWithEmail, signInWithEmail, signInWithGoogle, signInAsDemo, logout, refreshProfile, scoreToastEvent }}>
       {children}
     </AuthContext.Provider>
   );
