@@ -106,6 +106,7 @@ export default function DashboardLayout({
   const [currentMapStyle, setCurrentMapStyle] = useState(MAP_STYLES[0].url);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [showDepartmentWarning, setShowDepartmentWarning] = useState(false);
   const [isStyleExpanded, setIsStyleExpanded] = useState(false);
 
   // States for live counts and verification
@@ -543,7 +544,7 @@ export default function DashboardLayout({
             </button>
 
             <button
-              onClick={() => { setActiveTab("department"); setIsSidebarOpen(false); }}
+              onClick={() => { setShowDepartmentWarning(true); setIsSidebarOpen(false); }}
               className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "department"
                   ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
@@ -1247,6 +1248,47 @@ export default function DashboardLayout({
             }}
           />
         </>
+      )}
+
+      {/* Department View Warning Modal */}
+      {showDepartmentWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1A2209] border border-[#C0F53D]/30 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#C0F53D]/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+            
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-[#C0F53D]/10 text-[#C0F53D] rounded-full shrink-0">
+                <Briefcase className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-serif text-white mb-2">Department Simulation View</h3>
+                <p className="text-sm text-[#FAFFF3]/70 leading-relaxed font-light mb-6">
+                  This view demonstrates how municipal staff and department officials would interact with the CivicGuard platform. 
+                  <br/><br/>
+                  For demo purposes, you are entering a <strong className="text-[#C0F53D] font-normal">simulation</strong> of the admin portal where you can transition verified issues to "In Progress" or "Resolved".
+                </p>
+                
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowDepartmentWarning(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-mono font-bold text-[#FAFFF3]/60 hover:text-white hover:bg-[#FAFFF3]/5 transition-all"
+                  >
+                    CANCEL
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab("department");
+                      setShowDepartmentWarning(false);
+                    }}
+                    className="px-5 py-2 bg-[#C0F53D] text-[#0A0D04] rounded-xl text-xs font-mono font-bold hover:bg-[#C0F53D]/90 transition-all shadow-[0_0_15px_rgba(192,245,61,0.2)]"
+                  >
+                    ENTER SIMULATION
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
