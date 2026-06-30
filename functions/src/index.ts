@@ -109,9 +109,47 @@ export const verifyIssueOnConfirm = onDocumentUpdated("issues/{issueId}", async 
   console.log(`Document updated: confirmCount is ${confirmCount}, status is ${status}`);
 
   if (confirmCount >= 3 && status === "pending") {
+    console.log(`Checking anti-spam window for issue ${event.params.issueId}`);
+    
+    try {
+      const verificationsSnap = await admin.firestore().collection("verifications")
+        .where("issueId", "==", event.params.issueId)
+        .orderBy("createdAt", "asc")
+        .get();
+        
+      let flaggedForReview = false;
+      
+      if (verificationsSnap.size >= 3) {
+        const firstVoteStr = verificationsSnap.docs[0].data().createdAt;
+        const thirdVoteStr = verificationsSnap.docs[2].data().createdAt;
+        
+        if (firstVoteStr && thirdVoteStr) {
+          const firstVote = new Date(firstVoteStr).getTime();
+          const thirdVote = new Date(thirdVoteStr).getTime();
+          
+          if ((thirdVote - firstVote) < 30 * 1000) {
+            console.log(`Issue ${event.params.issueId} flagged for review. Votes cast in < 30 seconds.`);
+            flaggedForReview = true;
+          }
+        }
+      }
+      
+      if (flaggedForReview) {
+        await event.data?.after.ref.update({
+          flaggedForReview: true,
+          updatedAt: new Date().toISOString()
+        });
+        return;
+      }
+    } catch (err) {
+      console.error("Error during anti-spam check:", err);
+      // Fallback to normal flow if query fails
+    }
+
     console.log(`Promoting issue ${event.params.issueId} to verified status.`);
     await event.data?.after.ref.update({
       status: "verified",
+      flaggedForReview: false,
       updatedAt: new Date().toISOString()
     });
 
@@ -285,15 +323,22 @@ export const updateIssueStatus = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "issueId and newStatus are required.");
   }
 
-  if (!["in_progress", "resolved"].includes(newStatus)) {
-    throw new HttpsError("invalid-argument", "Invalid status provided. Must be 'in_progress' or 'resolved'.");
+  if (!["verified", "in_progress", "resolved"].includes(newStatus)) {
+    throw new HttpsError("invalid-argument", "Invalid status provided. Must be 'verified', 'in_progress' or 'resolved'.");
   }
 
   try {
-    await admin.firestore().collection("issues").doc(issueId).update({
+    const updateData: any = {
       status: newStatus,
       updatedAt: new Date().toISOString()
-    });
+    };
+    
+    // Clear flag if manually verified
+    if (newStatus === "verified") {
+      updateData.flaggedForReview = false;
+    }
+
+    await admin.firestore().collection("issues").doc(issueId).update(updateData);
     return { success: true };
   } catch (error) {
     console.error("Error updating issue status:", error);

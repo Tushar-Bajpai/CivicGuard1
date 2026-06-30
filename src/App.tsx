@@ -59,7 +59,8 @@ function AppContent() {
             updatedAt: data.updatedAt ? (typeof data.updatedAt === "string" ? data.updatedAt : (data.updatedAt.toDate ? data.updatedAt.toDate().toISOString() : new Date(data.updatedAt.seconds * 1000).toISOString())) : undefined,
             escalationNote: data.escalationNote || undefined,
             escalatedAt: data.escalatedAt || undefined,
-            resolutionSummary: data.resolutionSummary || undefined
+            resolutionSummary: data.resolutionSummary || undefined,
+            flaggedForReview: data.flaggedForReview || false
           });
         });
         // Sort by date reported (newest first)

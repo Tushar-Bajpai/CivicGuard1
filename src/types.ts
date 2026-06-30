@@ -21,6 +21,7 @@ export interface CivicIssue {
   escalationNote?: string;
   escalatedAt?: string;
   resolutionSummary?: string;
+  flaggedForReview?: boolean;
 }
 
 export interface NavigationTab {
