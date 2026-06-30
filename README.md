@@ -98,3 +98,9 @@ flowchart TD
 ![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=flat)
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+<p align="center">
+  Made with love ❤️ for VIbe2Ship hackathon by Tushar
+</p>
