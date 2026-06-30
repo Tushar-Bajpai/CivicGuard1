@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 
 // 1. Retrieve environment variables
 const env = (import.meta as any).env || {};
@@ -35,6 +36,7 @@ const app = isConfigured
 export const auth = app ? getAuth(app) : null;
 export const db = app ? (env.VITE_FIREBASE_DATABASE_ID ? getFirestore(app, env.VITE_FIREBASE_DATABASE_ID) : getFirestore(app)) : null;
 export const storage = app ? getStorage(app) : null;
+export const functions = app ? getFunctions(app) : null;
 
 // Error enum and interface per skill guidelines
 export enum OperationType {

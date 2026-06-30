@@ -35,9 +35,13 @@ import {
 import { CivicIssue, IssueStatus } from "../types";
 import IssueVisualizer from "./IssueVisualizer";
 import AnalyticsDashboard from "./AnalyticsDashboard";
+import DepartmentView from "./DepartmentView";
 import { db, handleFirestoreError, OperationType } from "../firebase";
 import { doc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
+import { INITIAL_ISSUES, DEPARTMENT_ROUTING } from "../data";
+import { getFunctions, httpsCallable } from "firebase/firestore"; // wait, httpsCallable is from firebase/functions
+
 
 // Import MapLibre styles
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -49,7 +53,7 @@ interface DashboardLayoutProps {
   onBackToLanding: () => void;
 }
 
-type TabType = "map" | "my_reports" | "community" | "leaderboard" | "analytics" | "settings";
+type TabType = "map" | "my_reports" | "community" | "leaderboard" | "analytics" | "department" | "settings";
 
 const MAP_STYLES = [
   { id: "dark", label: "Midnight", url: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json" },
@@ -531,6 +535,17 @@ export default function DashboardLayout({
             </button>
 
             <button
+              onClick={() => { setActiveTab("department"); setIsSidebarOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "department"
+                  ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+                  : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
+                }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Department View</span>
+            </button>
+
+            <button
               onClick={() => { setActiveTab("settings"); setIsSidebarOpen(false); }}
               className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === "settings"
                   ? "bg-[#0A0D04] text-[#C0F53D] border border-[#C0F53D]/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
@@ -873,7 +888,7 @@ export default function DashboardLayout({
                           if (selectedIssue.aiOutput.trim().startsWith("{")) {
                             try {
                               const parsed = JSON.parse(selectedIssue.aiOutput);
-                              return `AI System Analysis: Confirmed ${catDetails.label.toLowerCase()} hazard detected with ${(parsed.confidence * 100).toFixed(0)}% confidence. Priority dispatch assigned to ${parsed.route_to || "municipal queue"}.`;
+                              return `AI System Analysis: Confirmed ${catDetails.label.toLowerCase()} hazard detected with ${(parsed.confidence * 100).toFixed(0)}% confidence. Priority dispatch assigned to ${DEPARTMENT_ROUTING[issue.category] || parsed.route_to || "municipal queue"}.`;
                             } catch (e) {
                               // fallback
                             }
@@ -927,6 +942,19 @@ export default function DashboardLayout({
                           );
                         })}
                       </div>
+
+                      {/* Display AI Resolution Summary if resolved */}
+                      {selectedIssue.status === "resolved" && selectedIssue.resolutionSummary && (
+                        <div className="mt-6 p-3.5 bg-[#C0F53D]/10 border border-[#C0F53D]/30 rounded-xl">
+                          <div className="flex items-center gap-1.5 mb-1.5 text-[#C0F53D] font-mono text-[9px] uppercase font-bold tracking-wider">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            <span>Resolution Summary</span>
+                          </div>
+                          <p className="text-xs text-[#FAFFF3]/90 font-mono italic">
+                            {selectedIssue.resolutionSummary}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Local Feedback Toast if active */}
@@ -1244,6 +1272,11 @@ export default function DashboardLayout({
           {/* Analytics Dashboard Panel */}
           <div className={`flex-1 relative flex-col min-h-0 bg-[#0A0D04] ${activeTab === "analytics" ? "flex" : "hidden"}`}>
             <AnalyticsDashboard issues={issues} />
+          </div>
+
+          {/* Department View Panel */}
+          <div className={`flex-1 relative flex-col min-h-0 bg-[#0A0D04] ${activeTab === "department" ? "flex" : "hidden"}`}>
+            {activeTab === "department" && <DepartmentView issues={issues} />}
           </div>
 
         </div>

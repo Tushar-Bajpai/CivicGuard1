@@ -1,5 +1,14 @@
 import { CivicIssue } from "./types";
 
+export const DEPARTMENT_ROUTING: Record<string, string> = {
+  pothole_or_road_damage: "Transportation & Road Repair",
+  water_leak_or_flooding: "Water & Sanitation Dept",
+  streetlight_broken: "Grid & Electrification Board",
+  waste_or_garbage_dump: "Urban Sanitation Services",
+  fallen_tree_or_debris: "Urban Forestry Dept",
+  other_infrastructure: "General Municipal Services"
+};
+
 export const INITIAL_ISSUES: CivicIssue[] = [
   {
     id: "CG-2026-001",

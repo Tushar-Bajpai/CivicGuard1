@@ -43,7 +43,7 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
     "depth_cm": 14.5,
     "width_cm": 68.2
   },
-  "route_to": "MUNI-RD-9942"
+  "route_to": "Transportation & Road Repair"
 }`,
     water_leak: `{
   "category": "water_leak",
@@ -54,7 +54,7 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
     "flow_lpm": 34.2,
     "saturation": 0.88
   },
-  "route_to": "MUNI-H2O-3341"
+  "route_to": "Water & Sanitation Dept"
 }`,
     electrical: `{
   "category": "electrical_hazard",
@@ -65,7 +65,7 @@ export default function Hero({ onReportClick, onViewMapClick }: HeroProps) {
     "voltage_v": 240,
     "temp_c": 142.5
   },
-  "route_to": "MUNI-GRID-0211"
+  "route_to": "Grid & Electrification Board"
 }`
   }[activeScan];
 

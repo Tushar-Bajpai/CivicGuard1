@@ -20,6 +20,7 @@ export interface CivicIssue {
   updatedAt?: string;
   escalationNote?: string;
   escalatedAt?: string;
+  resolutionSummary?: string;
 }
 
 export interface NavigationTab {

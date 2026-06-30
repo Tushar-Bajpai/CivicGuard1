@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { INITIAL_ISSUES } from "./data";
+import { INITIAL_ISSUES, DEPARTMENT_ROUTING } from "./data";
 import { CivicIssue } from "./types";
 import Navigation from "./components/Navigation";
 import Hero from "./components/Hero";
@@ -58,7 +58,8 @@ function AppContent() {
             reporterId: data.reporterId || "",
             updatedAt: data.updatedAt ? (typeof data.updatedAt === "string" ? data.updatedAt : (data.updatedAt.toDate ? data.updatedAt.toDate().toISOString() : new Date(data.updatedAt.seconds * 1000).toISOString())) : undefined,
             escalationNote: data.escalationNote || undefined,
-            escalatedAt: data.escalatedAt || undefined
+            escalatedAt: data.escalatedAt || undefined,
+            resolutionSummary: data.resolutionSummary || undefined
           });
         });
         // Sort by date reported (newest first)
@@ -301,7 +302,7 @@ function AppContent() {
         saturation: Math.random() > 0.5 ? 0.91 : undefined,
         voltage_v: Math.random() > 0.5 ? 240 : undefined,
       },
-      route_to: `MUNI-AUTO-${Math.floor(Math.random() * 8000 + 1000)}`
+      route_to: DEPARTMENT_ROUTING[newReport.category] || "General Municipal Services"
     };
 
     const firestoreData = {

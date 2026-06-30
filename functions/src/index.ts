@@ -1,4 +1,4 @@
-import { onRequest } from "firebase-functions/v2/https";
+import { onRequest, onCall, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { GoogleGenAI } from "@google/genai";
@@ -267,5 +267,99 @@ export const manualEscalation = onRequest({ cors: true }, async (req, res) => {
   } catch (error: any) {
     console.error("Manual escalation failed:", error);
     res.status(500).send({ error: error.message || "Escalation failed" });
+  }
+});
+
+/**
+ * Callable function to securely update an issue's status.
+ * Requires an authenticated user.
+ */
+export const updateIssueStatus = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to update an issue status.");
+  }
+
+  const { issueId, newStatus } = request.data;
+
+  if (!issueId || !newStatus) {
+    throw new HttpsError("invalid-argument", "issueId and newStatus are required.");
+  }
+
+  if (!["in_progress", "resolved"].includes(newStatus)) {
+    throw new HttpsError("invalid-argument", "Invalid status provided. Must be 'in_progress' or 'resolved'.");
+  }
+
+  try {
+    await admin.firestore().collection("issues").doc(issueId).update({
+      status: newStatus,
+      updatedAt: new Date().toISOString()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating issue status:", error);
+    throw new HttpsError("internal", "Failed to update issue status.");
+  }
+});
+
+/**
+ * Firestore trigger: When an issue's status changes to 'resolved',
+ * generate an AI summary and award the reporter +15 civicScore.
+ */
+export const onIssueResolved = onDocumentUpdated("issues/{issueId}", async (event) => {
+  const beforeValue = event.data?.before.data();
+  const afterValue = event.data?.after.data();
+
+  if (!beforeValue || !afterValue) return;
+
+  // Only trigger on the transition to "resolved"
+  if (beforeValue.status !== "resolved" && afterValue.status === "resolved") {
+    console.log(`Issue ${event.params.issueId} resolved. Generating summary and awarding bonus...`);
+    
+    const reporterId = afterValue.reporterId;
+    
+    // Non-blocking: Update reporter civic score immediately
+    if (reporterId && reporterId !== "demo-user-123") {
+      admin.firestore().collection("users").doc(reporterId).update({
+        civicScore: admin.firestore.FieldValue.increment(15)
+      }).catch(err => console.error("Failed to award resolution bonus:", err));
+    }
+
+    // Generate summary asynchronously, wrapping in try/catch so it doesn't crash the trigger
+    const generateSummary = async () => {
+      try {
+        const createdAt = new Date(afterValue.createdAt);
+        const resolvedAt = new Date();
+        const daysToResolve = Math.max(1, Math.ceil((resolvedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
+
+        const prompt = `You are a Civic Reporting AI. A civic issue has just been resolved. 
+Write a one-sentence, plain-language closure summary.
+
+Details:
+Category: ${afterValue.category}
+Votes/Confirmations: ${afterValue.confirmCount || 0}
+Time to resolve: ${daysToResolve} days
+Location: ${afterValue.location?.name || "the community"}
+
+Format example: "Pothole on Main Street repaired by Transportation & Road Repair after 3 days, confirmed by 8 residents."`;
+
+        const result = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt
+        });
+
+        const summary = (result.text || "").trim().replace(/^"|"$/g, "");
+        if (summary) {
+          await event.data?.after.ref.update({
+            resolutionSummary: summary
+          });
+          console.log(`Saved resolution summary for ${event.params.issueId}`);
+        }
+      } catch (err) {
+        console.error("Failed to generate AI resolution summary:", err);
+      }
+    };
+    
+    // Fire and forget so we don't hold up the function
+    generateSummary();
   }
 });
