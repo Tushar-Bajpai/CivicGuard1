@@ -30,7 +30,12 @@ import {
   Bell,
   Map as MapIcon,
   Check,
-  LogOut
+  LogOut,
+  ClipboardList,
+  Users,
+  TrendingUp,
+  Briefcase,
+  UserCircle
 } from "lucide-react";
 import { CivicIssue, IssueStatus } from "../types";
 import IssueVisualizer from "./IssueVisualizer";
@@ -500,7 +505,7 @@ export default function DashboardLayout({
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
                 }`}
             >
-              <User className="w-4 h-4" />
+              <ClipboardList className="w-4 h-4" />
               <span>My Reports</span>
             </button>
 
@@ -511,7 +516,7 @@ export default function DashboardLayout({
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
                 }`}
             >
-              <Activity className="w-4 h-4" />
+              <Users className="w-4 h-4" />
               <span>Community Feed</span>
             </button>
 
@@ -533,7 +538,7 @@ export default function DashboardLayout({
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
                 }`}
             >
-              <Activity className="w-4 h-4" />
+              <TrendingUp className="w-4 h-4" />
               <span>Analytics</span>
             </button>
 
@@ -544,7 +549,7 @@ export default function DashboardLayout({
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
                 }`}
             >
-              <Settings className="w-4 h-4" />
+              <Briefcase className="w-4 h-4" />
               <span>Department View</span>
             </button>
 
@@ -555,7 +560,7 @@ export default function DashboardLayout({
                   : "text-[#FAFFF3]/70 hover:text-white hover:bg-[#0A0D04]/30"
                 }`}
             >
-              <User className="w-4 h-4" />
+              <UserCircle className="w-4 h-4" />
               <span>My Profile</span>
             </button>
 
